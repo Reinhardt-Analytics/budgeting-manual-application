@@ -1,0 +1,18 @@
+{
+  "defaultCategories": [
+    "Housing",
+    "Transportation", 
+    "Utilities",
+    "Insurance",
+    "Saving and Investments",
+    "Groceries",
+    "Health and Wellness",
+    "Dining Out",
+    "Gifts and Charity",
+    "Entertainment and Travel"
+  ],
+  "budgets": {},
+  "customCategories": [],
+  "monthlyIncome": 0,
+  "currencyMode": "dollars"
+}
