@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, RadialLinearScale } from 'chart.js';
+import { PolarArea } from 'react-chartjs-2';
 import budgetDataTemplate from '../data/budgetData.json';
 import './budget-creation.css';
 
+// Register Chart.js components
+ChartJS.register(ArcElement, Tooltip, Legend, RadialLinearScale);
+
 function Budget() {
-    // Initialize state from localStorage or template
+    // Initialize state from template only (no localStorage persistence)
     const [budgetData, setBudgetData] = useState(() => {
-        const saved = localStorage.getItem('budgetData');
-        if (saved) {
-            return JSON.parse(saved);
-        }
         return { ...budgetDataTemplate };
     });
 
@@ -19,10 +20,10 @@ function Budget() {
     const [showAddCategory, setShowAddCategory] = useState(false);
     const [showLimitWarning, setShowLimitWarning] = useState(false);
 
-    // Save to localStorage whenever budgetData changes
-    useEffect(() => {
-        localStorage.setItem('budgetData', JSON.stringify(budgetData));
-    }, [budgetData]);
+    // Session-only storage (no persistence between sessions)
+    // useEffect(() => {
+    //     localStorage.setItem('budgetData', JSON.stringify(budgetData));
+    // }, [budgetData]);
 
     // Get all categories (default + custom)
     const getAllCategories = () => {
@@ -76,6 +77,104 @@ function Budget() {
         }
     };
 
+    // Prepare chart data for polar area chart
+    const getChartData = () => {
+        const budgetEntries = Object.entries(budgetData.budgets);
+        
+        if (budgetEntries.length === 0) {
+            return {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            };
+        }
+
+        const totalBudget = budgetEntries.reduce((sum, [, amount]) => sum + (parseFloat(amount) || 0), 0);
+        
+        const labels = [];
+        const data = [];
+        const backgroundColor = [];
+
+        budgetEntries.forEach(([category, amount]) => {
+            const numericAmount = parseFloat(amount) || 0;
+            if (numericAmount > 0) {
+                labels.push(category);
+                // Calculate percentage of total budget
+                const percentage = totalBudget > 0 ? (numericAmount / totalBudget) * 100 : 0;
+                data.push(percentage);
+                backgroundColor.push('#88C0FC');
+            }
+        });
+
+        return {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor,
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        };
+    };
+
+    // Chart options with animations
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+            duration: 800,
+            easing: 'easeInOutQuart'
+        },
+        transitions: {
+            active: {
+                animation: {
+                    duration: 400
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    font: {
+                        size: 12
+                    }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const label = context.label || '';
+                        const value = context.parsed || 0;
+                        const budgetAmount = budgetData.budgets[label] || 0;
+                        return `${label}: ${value.toFixed(1)}% (${budgetData.currencyMode === 'dollars' ? formatCurrency(budgetAmount) : formatPercentage(budgetAmount)})`;
+                    }
+                }
+            }
+        },
+        scales: {
+            r: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                },
+                angleLines: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                },
+                pointLabels: {
+                    font: {
+                        size: 10
+                    }
+                }
+            }
+        }
+    };
+
     // Handle category selection
     const handleCategoryChange = (e) => {
         const category = e.target.value;
@@ -98,11 +197,20 @@ function Budget() {
 
     // Handle budget amount input
     const handleBudgetChange = (e) => {
-        const rawValue = e.target.value.replace(/[,$%]/g, '');
+        const input = e.target;
+        const cursorPosition = input.selectionStart;
+        const rawValue = input.value.replace(/[,$%]/g, '');
         const numValue = parseFloat(rawValue);
         
         if (rawValue === '' || (!isNaN(numValue) && validateBudgetInput(numValue, selectedCategory))) {
-            setBudgetAmount(rawValue === '' ? '' : numValue.toString());
+            const newValue = rawValue === '' ? '' : rawValue;
+            setBudgetAmount(newValue);
+            
+            // Restore cursor position after state update
+            setTimeout(() => {
+                const adjustedPosition = Math.min(cursorPosition, newValue.length);
+                input.setSelectionRange(adjustedPosition, adjustedPosition);
+            }, 0);
         }
     };
 
@@ -185,7 +293,9 @@ function Budget() {
 
     // Handle monthly income change
     const handleIncomeChange = (e) => {
-        const rawValue = e.target.value.replace(/[,$]/g, '');
+        const input = e.target;
+        const cursorPosition = input.selectionStart;
+        const rawValue = input.value.replace(/[,$]/g, '');
         const numValue = parseFloat(rawValue);
         
         if (rawValue === '' || (!isNaN(numValue) && numValue >= 0 && numValue <= 10000000)) {
@@ -193,6 +303,12 @@ function Budget() {
                 ...prev,
                 monthlyIncome: rawValue === '' ? 0 : numValue
             }));
+            
+            // Restore cursor position after state update
+            setTimeout(() => {
+                const adjustedPosition = Math.min(cursorPosition, rawValue.length);
+                input.setSelectionRange(adjustedPosition, adjustedPosition);
+            }, 0);
         }
     };
 
@@ -386,6 +502,17 @@ function Budget() {
                         </div>
                     </div>
                 )}
+            </div>
+
+            {/* Chart Container */}
+            <div className="budget-chart-container">
+                <h3 className="chart-title">Budget Distribution</h3>
+                <div className="chart-wrapper">
+                    <PolarArea 
+                        data={getChartData()} 
+                        options={chartOptions}
+                    />
+                </div>
             </div>
         </div>
     );

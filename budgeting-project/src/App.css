@@ -5,9 +5,9 @@
   --header-bg: hsla(0, 0%, 100%, 0.9);
   --header-shadow: hsla(0, 0%, 0%, 0.1);
   --header-border: hsla(0, 0%, 0%, 0.1);
-  --button-bg: #f9f9f9;
-  --button-hover: #e9e9e9;
-  --button-text: #213547;
+  --button-bg: #f0f0f0;
+  --button-hover: #d0d0d0;
+  --button-text: #555555;
   --toggle-bg: #646cff;
   --toggle-text: #ffffff;
 }
@@ -82,6 +82,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  z-index: 1000;
 }
 
 .header-left {
@@ -161,7 +162,7 @@ nav a button:hover {
   position: fixed;
   top: 75px; 
   left: 3.5rem;
-  z-index: 1000;
+  z-index: 999;
 }
 
 .switch {

@@ -3,12 +3,13 @@
 .budget-container {
   display: flex;
   justify-content: center;
+  gap: 20px;
   padding: 10px;
   padding-top: 60px; /* Reduced padding by half */
   min-height: 100vh; /* Revert to min-height for safety */
   background-color: #f5f5f5; /* Direct fallback */
   position: relative;
-  z-index: 1; /* Visible but below header */
+  z-index: 1; /* Background layer */
   overflow-y: auto; /* Allow scrolling if needed */
 }
 
@@ -19,11 +20,39 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Smaller shadow */
   max-width: 500px; /* Smaller max width */
   width: 100%;
-  margin: 0 auto;
   position: relative;
-  z-index: 2; /* Visible and above container */
+  z-index: 10; /* Card content layer */
   max-height: calc(100vh - 80px); /* Fit within screen */
   overflow-y: auto; /* Allow internal scrolling if needed */
+}
+
+.budget-chart-container {
+  background: var(--card-background, #ffffff);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 840px;
+  height: 840px;
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-wrapper {
+  width: 100%;
+  height: calc(100% - 60px);
+  position: relative;
+}
+
+.chart-title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-color, #333);
 }
 
 .card-header {
@@ -408,7 +437,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 500;
 }
 
 .modal-content {
@@ -507,10 +536,30 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1400px) {
+  .budget-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .budget-chart-container {
+    width: 600px;
+    height: 600px;
+  }
+}
+
 @media (max-width: 768px) {
   .budget-card {
     margin: 10px;
     padding: 20px;
+    max-width: 90%;
+  }
+  
+  .budget-chart-container {
+    width: 90%;
+    height: 400px;
+    max-width: 500px;
   }
   
   .category-creation {
@@ -535,6 +584,10 @@
     display: block;
     width: 100%;
     margin: 5px 0;
+  }
+  
+  .chart-title {
+    font-size: 20px;
   }
 }
 
@@ -582,6 +635,14 @@
 
 [data-theme="dark"] .modal-content {
   background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .budget-chart-container {
+  background-color: #2d3748;
+}
+
+[data-theme="dark"] .chart-title {
   color: #e2e8f0;
 }
 
