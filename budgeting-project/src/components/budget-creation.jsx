@@ -160,6 +160,11 @@ function Budget() {
         scales: {
             r: {
                 beginAtZero: true,
+                ticks: {
+                    stepSize: 20, // This will create exactly 5 rings (0, 20, 40, 60, 80, 100)
+                    max: 100,
+                    display: true
+                },
                 grid: {
                     color: 'rgba(0, 0, 0, 0.1)'
                 },
@@ -330,8 +335,30 @@ function Budget() {
         }
     };
 
+    // Check if chart should be shown (minimum 6 categories with budgets)
+    const shouldShowChart = () => {
+        const budgetEntries = Object.entries(budgetData.budgets);
+        const categoriesWithBudgets = budgetEntries.filter(([, amount]) => parseFloat(amount) > 0);
+        return categoriesWithBudgets.length >= 6;
+    };
+
+    // Calculate remaining income
+    const calculateRemaining = () => {
+        const totalBudget = Object.values(budgetData.budgets).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+        const income = budgetData.monthlyIncome || 0;
+        return Math.max(0, income - totalBudget);
+    };
+
+    // Calculate remaining percentage for the bar
+    const calculateRemainingPercentage = () => {
+        const income = budgetData.monthlyIncome || 0;
+        if (income === 0) return 0;
+        const remaining = calculateRemaining();
+        return (remaining / income) * 100;
+    };
+
     return (
-        <div className="budget-container">
+        <div className={`budget-container ${shouldShowChart() ? 'split' : 'centered'}`}>
             <div className="budget-card">
                 <div className="card-header">
                     <h2>Configure Budget</h2>
@@ -352,6 +379,15 @@ function Budget() {
                         <button onClick={setMonthlyIncome} className="income-enter-btn">
                             Enter
                         </button>
+                    </div>
+                    <div className="remaining-income">
+                        Remaining: {formatCurrency(calculateRemaining())}
+                    </div>
+                    <div className="remaining-bar-container">
+                        <div 
+                            className="remaining-bar" 
+                            style={{ width: `${calculateRemainingPercentage()}%` }}
+                        ></div>
                     </div>
                 </div>
 
@@ -504,8 +540,8 @@ function Budget() {
                 )}
             </div>
 
-            {/* Chart Container */}
-            <div className="budget-chart-container">
+            {/* Chart Container - Only show when 6+ categories have budgets */}
+            <div className={`budget-chart-container ${shouldShowChart() ? 'show' : ''}`}>
                 <h3 className="chart-title">Budget Distribution</h3>
                 <div className="chart-wrapper">
                     <PolarArea 
