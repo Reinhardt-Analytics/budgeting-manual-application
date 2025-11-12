@@ -19,6 +19,7 @@ function Budget() {
     const [showViewAll, setShowViewAll] = useState(false);
     const [showAddCategory, setShowAddCategory] = useState(false);
     const [showLimitWarning, setShowLimitWarning] = useState(false);
+    const [isLocked, setIsLocked] = useState(false);
 
     // Session-only storage (no persistence between sessions)
     // useEffect(() => {
@@ -267,14 +268,25 @@ function Budget() {
         }
     };
 
-    // Toggle currency mode
+    // Toggle currency mode (preserve ALL values, respect lock)
     const toggleCurrencyMode = () => {
+        if (isLocked) return; // Don't allow toggle when locked
+        
         setBudgetData(prev => ({
             ...prev,
-            currencyMode: prev.currencyMode === 'dollars' ? 'percentage' : 'dollars',
-            budgets: {} // Clear budgets when switching modes
+            currencyMode: prev.currencyMode === 'dollars' ? 'percentage' : 'dollars'
+            // Don't clear budgets - preserve existing values
         }));
-        setBudgetAmount('');
+        // Keep current input value as well - don't clear anything
+    };
+
+    // Lock/unlock the currency mode
+    const toggleLock = () => {
+        if (!isLocked && budgetAmount && parseFloat(budgetAmount) > 0) {
+            setIsLocked(true);
+        } else if (isLocked) {
+            setIsLocked(false);
+        }
     };
 
     // Remove category
@@ -358,7 +370,9 @@ function Budget() {
     };
 
     return (
-        <div className={`budget-container ${shouldShowChart() ? 'split' : 'centered'}`}>
+        <>
+            <div className="budget-background"></div>
+            <div className={`budget-container ${shouldShowChart() ? 'split' : 'centered'}`}>
             <div className="budget-card">
                 <div className="card-header">
                     <h2>Configure Budget</h2>
@@ -380,14 +394,14 @@ function Budget() {
                             Enter
                         </button>
                     </div>
-                    <div className="remaining-income">
-                        Remaining: {formatCurrency(calculateRemaining())}
-                    </div>
                     <div className="remaining-bar-container">
                         <div 
                             className="remaining-bar" 
                             style={{ width: `${calculateRemainingPercentage()}%` }}
                         ></div>
+                    </div>
+                    <div className="remaining-income">
+                        Remaining: {formatCurrency(calculateRemaining())}
                     </div>
                 </div>
 
@@ -430,9 +444,22 @@ function Budget() {
                             onKeyPress={showAddCategory ? handleNewCategoryKeyPress : handleBudgetKeyPress}
                             placeholder={budgetData.currencyMode === 'dollars' ? '$0.00' : '0.00%'}
                         />
-                        <div className="currency-toggle-slider" onClick={toggleCurrencyMode}>
-                            <span className={`slider-option ${budgetData.currencyMode === 'dollars' ? 'active' : ''}`}>$</span>
-                            <span className={`slider-option ${budgetData.currencyMode === 'percentage' ? 'active' : ''}`}>%</span>
+                        <div className="currency-controls">
+                            <div 
+                                className={`currency-toggle-slider ${isLocked ? 'locked' : ''}`} 
+                                onClick={toggleCurrencyMode}
+                            >
+                                <span className={`slider-option ${budgetData.currencyMode === 'dollars' ? 'active' : ''}`}>$</span>
+                                <span className={`slider-option ${budgetData.currencyMode === 'percentage' ? 'active' : ''}`}>%</span>
+                            </div>
+                            <button 
+                                className={`lock-button ${isLocked ? 'locked' : ''}`}
+                                onClick={toggleLock}
+                                disabled={!budgetAmount || parseFloat(budgetAmount) <= 0}
+                                title={isLocked ? 'Unlock currency mode' : 'Lock currency mode'}
+                            >
+                                {isLocked ? '🔒' : '🔓'}
+                            </button>
                         </div>
                     </div>
 
@@ -463,81 +490,6 @@ function Budget() {
                         View All
                     </button>
                 </div>
-
-                {showLimitWarning && (
-                    <div className="modal-overlay" onClick={() => setShowLimitWarning(false)}>
-                        <div className="modal-content warning-modal" onClick={(e) => e.stopPropagation()}>
-                            <h3>Category Limit Reached</h3>
-                            <p>You have reached the maximum limit of 16 categories. Please delete a category before creating a new one.</p>
-                            <button 
-                                onClick={() => setShowLimitWarning(false)}
-                                className="close-modal-btn"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {showViewAll && (
-                    <div className="modal-overlay" onClick={() => setShowViewAll(false)}>
-                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                            <h3>All Budget Categories</h3>
-                            
-                            <div className="summary-section">
-                                <div className="summary-item large-item underlined">
-                                    <span className="summary-label">Total</span>
-                                    <span className="summary-amount">
-                                        {budgetData.currencyMode === 'dollars' 
-                                            ? formatCurrency(Object.values(budgetData.budgets).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0))
-                                            : formatPercentage(Object.values(budgetData.budgets).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0))
-                                        }
-                                    </span>
-                                </div>
-                                
-                                <div className="summary-item large-item">
-                                    <span className="summary-label">Income</span>
-                                    <span className="summary-amount">
-                                        {formatCurrency(budgetData.monthlyIncome || 0)}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="categories-list">
-                                {getAllCategories().map(category => (
-                                    <div key={category} className="category-item">
-                                        <span className="category-name">{category}</span>
-                                        <span className="category-amount">
-                                            {budgetData.currencyMode === 'dollars' 
-                                                ? formatCurrency(budgetData.budgets[category] || 0)
-                                                : formatPercentage(budgetData.budgets[category] || 0)
-                                            }
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="summary-section">
-                                <div className="summary-item large-item">
-                                    <span className="summary-label">Remaining</span>
-                                    <span className="summary-amount">
-                                        {budgetData.currencyMode === 'dollars' 
-                                            ? formatCurrency(Math.max(0, (budgetData.monthlyIncome || 0) - Object.values(budgetData.budgets).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0)))
-                                            : formatPercentage(Math.max(0, 100 - Object.values(budgetData.budgets).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0)))
-                                        }
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <button 
-                                onClick={() => setShowViewAll(false)}
-                                className="close-modal-btn"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Chart Container - Only show when 6+ categories have budgets */}
@@ -551,6 +503,83 @@ function Budget() {
                 </div>
             </div>
         </div>
+
+        {/* Modals - Outside budget container */}
+        {showLimitWarning && (
+            <div className="modal-overlay" onClick={() => setShowLimitWarning(false)}>
+                <div className="modal-content warning-modal" onClick={(e) => e.stopPropagation()}>
+                    <h3>Category Limit Reached</h3>
+                    <p>You have reached the maximum limit of 16 categories. Please delete a category before creating a new one.</p>
+                    <button 
+                        onClick={() => setShowLimitWarning(false)}
+                        className="close-modal-btn"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        )}
+
+        {showViewAll && (
+            <div className="modal-overlay" onClick={() => setShowViewAll(false)}>
+                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                    <h3>All Budget Categories</h3>
+                    
+                    <div className="summary-section">
+                        <div className="summary-item large-item underlined">
+                            <span className="summary-label">Total</span>
+                            <span className="summary-amount">
+                                {budgetData.currencyMode === 'dollars' 
+                                    ? formatCurrency(Object.values(budgetData.budgets).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0))
+                                    : formatPercentage(Object.values(budgetData.budgets).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0))
+                                }
+                            </span>
+                        </div>
+                        
+                        <div className="summary-item large-item">
+                            <span className="summary-label">Income</span>
+                            <span className="summary-amount">
+                                {formatCurrency(budgetData.monthlyIncome || 0)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="categories-list">
+                        {getAllCategories().map(category => (
+                            <div key={category} className="category-item">
+                                <span className="category-name">{category}</span>
+                                <span className="category-amount">
+                                    {budgetData.currencyMode === 'dollars' 
+                                        ? formatCurrency(budgetData.budgets[category] || 0)
+                                        : formatPercentage(budgetData.budgets[category] || 0)
+                                    }
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="summary-section">
+                        <div className="summary-item large-item">
+                            <span className="summary-label">Remaining</span>
+                            <span className="summary-amount">
+                                {budgetData.currencyMode === 'dollars' 
+                                    ? formatCurrency(Math.max(0, (budgetData.monthlyIncome || 0) - Object.values(budgetData.budgets).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0)))
+                                    : formatPercentage(Math.max(0, 100 - Object.values(budgetData.budgets).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0)))
+                                }
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        onClick={() => setShowViewAll(false)}
+                        className="close-modal-btn"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+                )}
+        </>
     );
 }
 
