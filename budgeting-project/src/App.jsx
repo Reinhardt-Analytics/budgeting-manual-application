@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import saielLogo from './assets/saiel-logo-transparent.png'
 import Budget from './components/budget-creation.jsx'
+import HomeRadarChart from './components/home-radar-chart.jsx'
 import './App.css'
 
 function App() {
@@ -45,18 +46,41 @@ function App() {
                   <h2 className="company-slogan">
                     <span className="company-name-text">{companyName}</span> | Simple, Made Better.
                   </h2>
-                  <h3 className = "about-company">
-                    Budgeting doesn't have to be complicated. Let us do the heavy lifting!
-                  </h3>
-                  <p>
-                    Here at <span className="company-name-text">{companyName}</span>, we're here to make financial planning easy and accessible no matter your experience level.
-                  </p>
-                  <p>
-                    Our company was organized under a single mission: to help people find financial balance and freedom. That all starts with helping consumers be more conscious of their spending. Through visualizing your finanicial goals, {companyName} allows you the peace of mind in feeling confident in your financial progress. The best part is, our tools are <strong>free to use</strong>!
-                  </p>
-                  <p>
-                    Select the buttons below to get started on your journey. Feel free to reach out to our organization using the informaiton listed in the contacts page.
-                  </p>
+                  
+                  {/* First Section */}
+                  <div className="content-section-one">
+                    <h3 className="section-heading">
+                      Budgeting doesn't have to be complicated. Let us do the heavy lifting!
+                    </h3>
+                    <p>
+                      Here at <span className="company-name-text">{companyName}</span>, we're here to make financial planning easy and accessible no matter your experience level. Our intuitive tools are designed to simplify complex financial concepts and make budgeting approachable for everyone. Our company was organized under a single mission: to help people find financial balance and freedom. That all starts with helping consumers be more conscious of their spending.
+                    </p>
+                    <p>
+                      Through visualizing your financial goals, {companyName} allows you the peace of mind in feeling confident in your financial progress. Whether you're just starting your financial journey or looking to optimize your existing budget, our platform provides the guidance and tools you need to succeed. The best part is, our tools are <strong>free to use</strong>!
+                    </p>
+                  </div>
+
+                  {/* Section Divider */}
+                  <div className="section-divider"></div>
+
+                  {/* Second Section */}
+                  <div className="content-section-two">
+                    <h3 className="section-heading">
+                      Setting up {companyName} is easy and painless. Here's how to get started:
+                    </h3>
+                    <p>
+                      <strong>Create Your Budget:</strong> Start by setting up your monthly income and categorizing your expenses using our intuitive budget creation tool.
+                    </p>
+                    <p>
+                      <strong>Track Your Spending:</strong> Monitor your transactions and see how they align with your budget goals in real-time.
+                    </p>
+                    <p>
+                      <strong>Visualize Your Progress:</strong> Use our interactive charts and graphs to understand your spending patterns and identify areas for improvement.
+                    </p>
+                    <p>
+                      Select the buttons below to get started on your journey. Feel free to reach out to our organization using the information listed in the contacts page.
+                    </p>
+                  </div>
                 </div>
                 <div className="button-section">
                   <button onClick={() => navigateToPage('Budgets')}>
@@ -68,7 +92,7 @@ function App() {
                 </div>
               </div>
               <div className="image-placeholder">
-                  {/* empty flexbox */}
+                  <HomeRadarChart />
               </div>
             </div>
           </div>
