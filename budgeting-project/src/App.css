@@ -5,11 +5,25 @@
   --header-bg: hsla(0, 0%, 100%, 0.9);
   --header-shadow: hsla(0, 0%, 0%, 0.1);
   --header-border: hsla(0, 0%, 0%, 0.1);
-  --button-bg: #f9f9f9;
-  --button-hover: #e9e9e9;
-  --button-text: #213547;
+  --button-bg: #f0f0f0;
+  --button-hover: #d0d0d0;
+  --button-text: #555555;
   --toggle-bg: #646cff;
   --toggle-text: #ffffff;
+  
+  /* Additional variables for components */
+  --primary-color: #646cff;
+  --primary-hover: #535bf2;
+  --secondary-color: #42b883;
+  --secondary-hover: #369870;
+  --card-background: #ffffff;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --border-color: #e2e8f0;
+  --background-primary: #f8fafc;
+  --background-secondary: #f1f5f9;
+  --text-secondary: #64748b;
+  --input-background: #ffffff;
+  --hover-background: #f8fafc;
 }
 
 :root[data-theme="dark"] {
@@ -23,6 +37,20 @@
   --button-text: rgba(255, 255, 255, 0.87);
   --toggle-bg: #646cff;
   --toggle-text: #ffffff;
+  
+  /* Additional variables for components */
+  --primary-color: #646cff;
+  --primary-hover: #535bf2;
+  --secondary-color: #42b883;
+  --secondary-hover: #369870;
+  --card-background: #1a1a1a;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --border-color: #374151;
+  --background-primary: #111827;
+  --background-secondary: #1f2937;
+  --text-secondary: #9ca3af;
+  --input-background: #1f2937;
+  --hover-background: #374151;
 }
 
 /* Future theme examples - uncomment and customize as needed */
@@ -82,6 +110,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  z-index: 1000;
 }
 
 .header-left {
@@ -161,7 +190,7 @@ nav a button:hover {
   position: fixed;
   top: 75px; 
   left: 3.5rem;
-  z-index: 1000;
+  z-index: 1001; /* Above modals */
 }
 
 .switch {
@@ -239,19 +268,56 @@ main {
 
 .content-section {
   display: flex;
-  gap: 2rem;
+  gap: 3rem;
   align-items: flex-start;
+  padding: 0 2rem;
 }
 
 .text-content {
   flex: 1;
   text-align: left;
+  padding-right: 2rem;
 }
 
 .text-content h3,
 .text-content p {
   text-align: left;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.content-section-one,
+.content-section-two {
+  margin-bottom: 2.5rem;
+}
+
+.section-heading {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 1.2rem;
+  margin-top: 1.5rem;
+}
+
+.getting-started-steps {
+  margin: 1rem 0;
+  padding-left: 1.2rem;
+}
+
+.getting-started-steps li {
+  margin-bottom: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-color);
+}
+
+.getting-started-steps strong {
+  color: var(--primary-color);
+}
+
+.section-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+  margin: 2rem 0;
 }
 
 .image-placeholder {
@@ -264,6 +330,7 @@ main {
   justify-content: center;
   background-color: var(--button-bg);
   flex-shrink: 0;
+  margin-left: 1rem;
 }
 
 .button-section {

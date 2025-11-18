@@ -1,29 +1,86 @@
 /* Budget Creation Component Styles */
 
+.budget-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #e8e8e8;
+  z-index: -10; /* Lowest possible z-index */
+}
+
 .budget-container {
   display: flex;
   justify-content: center;
+  gap: 20px;
   padding: 10px;
   padding-top: 60px; /* Reduced padding by half */
-  min-height: 100vh; /* Revert to min-height for safety */
-  background-color: #f5f5f5; /* Direct fallback */
+  min-height: 100vh; /* Full screen height */
+  width: 100%; /* Full width */
   position: relative;
-  z-index: 1; /* Visible but below header */
+  z-index: 5; /* Above background */
   overflow-y: auto; /* Allow scrolling if needed */
+  transition: justify-content 0.8s ease-in-out;
+}
+
+.budget-container.centered {
+  justify-content: center;
+}
+
+.budget-container.split {
+  justify-content: center;
 }
 
 .budget-card {
-  background: var(--card-background, #ffffff);
+  background: var(--card-background, #f8f8f8); /* Lighter than background for contrast */
   border-radius: 8px; /* Smaller border radius */
   padding: 20px; /* Reduced padding */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Smaller shadow */
+  padding-bottom: 28px; /* Slim bottom padding as requested */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Enhanced shadow for contrast */
   max-width: 500px; /* Smaller max width */
   width: 100%;
-  margin: 0 auto;
   position: relative;
-  z-index: 2; /* Visible and above container */
+  z-index: 10; /* Above background, below theme toggle and modals */
   max-height: calc(100vh - 80px); /* Fit within screen */
   overflow-y: auto; /* Allow internal scrolling if needed */
+}
+
+.budget-chart-container {
+  background: var(--card-background, #f8f8f8); /* Match budget card background */
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Enhanced shadow for contrast */
+  width: 500px; /* Same as budget card max-width */
+  height: 500px;
+  position: relative;
+  z-index: 10; /* Same layer as budget card */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+}
+
+.budget-chart-container.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.chart-wrapper {
+  width: 100%;
+  height: calc(100% - 60px);
+  position: relative;
+}
+
+.chart-title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-color, #333);
 }
 
 .card-header {
@@ -42,7 +99,7 @@
   color: var(--text-color, #666);
   font-size: 13px; /* Smaller font size */
   margin: 0;
-  font-style: italic;
+  font-style: normal; /* Remove italics */
 }
 
 /* Income Section */
@@ -97,6 +154,30 @@
 
 .income-enter-btn:hover {
   background-color: var(--primary-shade-hover, rgba(0, 123, 255, 0.9));
+}
+
+.remaining-bar-container {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  width: 100%;
+  height: 6px;
+  background-color: var(--border-color, rgba(0, 0, 0, 0.1));
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.remaining-income {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--text-color, #333);
+  font-weight: 500;
+}
+
+.remaining-bar {
+  height: 100%;
+  background-color: #88C0FC;
+  border-radius: 3px;
+  transition: width 0.5s ease-in-out;
 }
 
 /* Category Creation */
@@ -238,11 +319,11 @@
 }
 
 .category-limit-text {
-  font-size: 11px;
+  font-size: 14px; /* Same as remaining income text */
   color: var(--text-color, #666);
   margin: 5px 0 15px 0;
   text-align: center;
-  font-style: italic;
+  font-style: normal; /* Remove italics */
 }
 
 .add-category-section {
@@ -269,6 +350,12 @@
   border-color: var(--primary-shade, rgba(0, 123, 255, 0.8));
 }
 
+.currency-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .currency-toggle-slider {
   display: flex;
   background-color: var(--section-background, rgba(248, 249, 250, 1));
@@ -277,6 +364,42 @@
   cursor: pointer;
   min-width: 60px;
   border: 2px solid var(--border-color, rgba(0, 0, 0, 0.2));
+  transition: opacity 0.3s ease;
+}
+
+.currency-toggle-slider.locked {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lock-button {
+  background: none;
+  border: 2px solid var(--border-color, rgba(0, 0, 0, 0.2));
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  color: var(--text-color, #666);
+}
+
+.lock-button:hover {
+  background-color: var(--hover-shade, rgba(0, 0, 0, 0.05));
+}
+
+.lock-button.locked {
+  background-color: var(--primary-shade, rgba(0, 123, 255, 0.8));
+  color: white;
+  border-color: var(--primary-shade, rgba(0, 123, 255, 0.8));
+}
+
+.lock-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .slider-option {
@@ -408,7 +531,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1000; /* Highest layer for modals */
 }
 
 .modal-content {
@@ -507,10 +630,35 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1100px) {
+  .budget-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .budget-chart-container {
+    width: 500px;
+    height: 500px;
+  }
+}
+
 @media (max-width: 768px) {
+  .budget-container {
+    padding: 5px;
+    padding-top: 60px;
+  }
+  
   .budget-card {
     margin: 10px;
     padding: 20px;
+    max-width: 90%;
+  }
+  
+  .budget-chart-container {
+    width: 90%;
+    height: 400px;
+    max-width: 450px;
   }
   
   .category-creation {
@@ -531,10 +679,19 @@
     text-align: center;
   }
   
+  .currency-controls {
+    justify-content: center;
+    margin-top: 8px;
+  }
+  
   .current-category button {
     display: block;
     width: 100%;
     margin: 5px 0;
+  }
+  
+  .chart-title {
+    font-size: 20px;
   }
 }
 
@@ -561,8 +718,16 @@
   --secondary-shade-hover: rgba(160, 174, 192, 0.9);
 }
 
-[data-theme="dark"] .budget-container {
-  background-color: #1a202c;
+[data-theme="dark"] .budget-background {
+  background-color: #2d3748; /* Darker gray for dark theme */
+}
+
+[data-theme="dark"] .budget-card {
+  background-color: #1a202c; /* Darker card background */
+}
+
+[data-theme="dark"] .budget-chart-container {
+  background-color: #1a202c; /* Match card background */
 }
 
 [data-theme="dark"] .category-select,
@@ -583,6 +748,31 @@
 [data-theme="dark"] .modal-content {
   background-color: #2d3748;
   color: #e2e8f0;
+}
+
+[data-theme="dark"] .budget-chart-container {
+  background-color: #2d3748;
+}
+
+[data-theme="dark"] .chart-title {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .remaining-income {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .remaining-bar-container {
+  background-color: rgba(74, 85, 104, 0.8);
+}
+
+[data-theme="dark"] .lock-button {
+  color: #e2e8f0;
+  border-color: rgba(74, 85, 104, 0.8);
+}
+
+[data-theme="dark"] .lock-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Light theme explicit variables */
@@ -607,11 +797,19 @@
   --secondary-shade-hover: rgba(108, 117, 125, 0.9);
 }
 
-[data-theme="light"] .budget-container {
-  background-color: #f5f5f5;
+[data-theme="light"] .budget-background {
+  background-color: #e8e8e8; /* Darker gray for contrast */
 }
 
-/* Ensure the container has a fallback background */
-.budget-container {
-  background-color: #f5f5f5; /* Fallback background */
+[data-theme="light"] .budget-card {
+  background-color: #f8f8f8; /* Lighter card background */
+}
+
+[data-theme="light"] .budget-chart-container {
+  background-color: #f8f8f8; /* Match card background */
+}
+
+/* Ensure the background has fallback colors */
+.budget-background {
+  background-color: #e8e8e8; /* Fallback background - darker gray */
 }
