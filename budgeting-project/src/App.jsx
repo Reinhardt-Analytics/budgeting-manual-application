@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import saielLogo from './assets/saiel-logo-transparent.png'
 import Budget from './components/budget-creation.jsx'
 import HomeRadarChart from './components/home-radar-chart.jsx'
+import Transactions from './components/transactions.jsx'
 import './App.css'
 
 function App() {
@@ -33,7 +34,7 @@ function App() {
       case 'Budgets':
         return <Budget />
       case 'Transactions':
-        return <div><h2>Transactions Page</h2><p>Transaction tracking coming soon!</p></div>
+        return <Transactions />
       case 'Dashboard':
         return <div><h2>Dashboard Page</h2><p>Dashboard coming soon!</p></div>
       case 'Home':

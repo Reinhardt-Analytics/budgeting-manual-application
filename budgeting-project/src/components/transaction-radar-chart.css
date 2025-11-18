@@ -1,0 +1,59 @@
+/* Transaction Radar Chart Styles */
+.transaction-radar-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.transaction-radar-chart svg {
+  background: var(--card-background);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  max-width: 400px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 12px;
+}
+
+.legend-color {
+  width: 10px;
+  height: 10px;
+  background: #394353;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .transaction-radar-chart svg {
+    width: 100%;
+    max-width: 350px;
+    height: auto;
+  }
+  
+  .chart-legend {
+    max-width: 100%;
+  }
+  
+  .legend-item {
+    font-size: 0.8rem;
+  }
+}

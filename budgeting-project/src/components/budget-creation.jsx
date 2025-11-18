@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, RadialLinearScale } from 'chart.js';
 import { PolarArea } from 'react-chartjs-2';
 import budgetDataTemplate from '../data/budgetData.json';
@@ -8,9 +8,15 @@ import './budget-creation.css';
 ChartJS.register(ArcElement, Tooltip, Legend, RadialLinearScale);
 
 function Budget() {
-    // Initialize state from template only (no localStorage persistence)
+    // Initialize state with localStorage persistence
     const [budgetData, setBudgetData] = useState(() => {
-        return { ...budgetDataTemplate };
+        try {
+            const savedData = localStorage.getItem('budgetData');
+            return savedData ? JSON.parse(savedData) : { ...budgetDataTemplate };
+        } catch (error) {
+            console.error('Error loading budget data:', error);
+            return { ...budgetDataTemplate };
+        }
     });
 
     const [selectedCategory, setSelectedCategory] = useState('');
@@ -22,10 +28,10 @@ function Budget() {
     const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
     const [showChart, setShowChart] = useState(false);
 
-    // Session-only storage (no persistence between sessions)
-    // useEffect(() => {
-    //     localStorage.setItem('budgetData', JSON.stringify(budgetData));
-    // }, [budgetData]);
+    // Save to localStorage whenever budgetData changes
+    useEffect(() => {
+        localStorage.setItem('budgetData', JSON.stringify(budgetData));
+    }, [budgetData]);
 
     // Get all categories (default + custom)
     const getAllCategories = () => {
