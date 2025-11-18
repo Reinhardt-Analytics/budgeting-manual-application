@@ -19,7 +19,8 @@ function Budget() {
     const [showViewAll, setShowViewAll] = useState(false);
     const [showAddCategory, setShowAddCategory] = useState(false);
     const [showLimitWarning, setShowLimitWarning] = useState(false);
-    const [isLocked, setIsLocked] = useState(false);
+    const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
+    const [showChart, setShowChart] = useState(false);
 
     // Session-only storage (no persistence between sessions)
     // useEffect(() => {
@@ -78,7 +79,7 @@ function Budget() {
         }
     };
 
-    // Prepare chart data for polar area chart
+    // Prepare chart data for polar area chart (excluding housing)
     const getChartData = () => {
         const budgetEntries = Object.entries(budgetData.budgets);
         
@@ -94,19 +95,16 @@ function Budget() {
             };
         }
 
-        const totalBudget = budgetEntries.reduce((sum, [, amount]) => sum + (parseFloat(amount) || 0), 0);
-        
         const labels = [];
         const data = [];
         const backgroundColor = [];
 
         budgetEntries.forEach(([category, amount]) => {
             const numericAmount = parseFloat(amount) || 0;
-            if (numericAmount > 0) {
+            // Exclude housing from the chart
+            if (numericAmount > 0 && category.toLowerCase() !== 'housing') {
                 labels.push(category);
-                // Calculate percentage of total budget
-                const percentage = totalBudget > 0 ? (numericAmount / totalBudget) * 100 : 0;
-                data.push(percentage);
+                data.push(numericAmount);
                 backgroundColor.push('#88C0FC');
             }
         });
@@ -120,6 +118,14 @@ function Budget() {
                 borderColor: '#ffffff'
             }]
         };
+    };
+
+    // Get housing budget amount to display separately
+    const getHousingBudget = () => {
+        const housingEntries = Object.entries(budgetData.budgets).filter(([category]) => 
+            category.toLowerCase() === 'housing'
+        );
+        return housingEntries.length > 0 ? parseFloat(housingEntries[0][1]) || 0 : 0;
     };
 
     // Chart options with animations
@@ -268,45 +274,7 @@ function Budget() {
         }
     };
 
-    // Toggle currency mode (preserve ALL values, respect lock)
-    const toggleCurrencyMode = () => {
-        if (isLocked) return; // Don't allow toggle when locked
-        
-        setBudgetData(prev => ({
-            ...prev,
-            currencyMode: prev.currencyMode === 'dollars' ? 'percentage' : 'dollars'
-            // Don't clear budgets - preserve existing values
-        }));
-        // Keep current input value as well - don't clear anything
-    };
 
-    // Lock/unlock the currency mode
-    const toggleLock = () => {
-        if (!isLocked && budgetAmount && parseFloat(budgetAmount) > 0) {
-            setIsLocked(true);
-        } else if (isLocked) {
-            setIsLocked(false);
-        }
-    };
-
-    // Remove category
-    const removeCategory = (category) => {
-        setBudgetData(prev => {
-            const newBudgets = { ...prev.budgets };
-            delete newBudgets[category];
-            
-            return {
-                ...prev,
-                budgets: newBudgets,
-                customCategories: prev.customCategories.filter(cat => cat !== category)
-            };
-        });
-        
-        if (selectedCategory === category) {
-            setSelectedCategory('');
-            setBudgetAmount('');
-        }
-    };
 
     // Handle monthly income change
     const handleIncomeChange = (e) => {
@@ -347,12 +315,7 @@ function Budget() {
         }
     };
 
-    // Check if chart should be shown (minimum 6 categories with budgets)
-    const shouldShowChart = () => {
-        const budgetEntries = Object.entries(budgetData.budgets);
-        const categoriesWithBudgets = budgetEntries.filter(([, amount]) => parseFloat(amount) > 0);
-        return categoriesWithBudgets.length >= 6;
-    };
+
 
     // Calculate remaining income
     const calculateRemaining = () => {
@@ -369,140 +332,223 @@ function Budget() {
         return (remaining / income) * 100;
     };
 
+    // Carousel content
+    const carouselContent = [
+        {
+            title: "Budget Foundation & Purpose",
+            content: `Your budget must serve as a comprehensive tool to project necessary resources, measure current financial performance, and detect significant changes in your financial circumstances. Establish realistic and attainable budget targets based on thorough analysis of your financial needs and goals.
+
+Budget planning requires a clear identification of your financial purpose, comprehensive assessment of needs, and a strategic plan to increase resources or modify objectives when current resources fall short of meeting your goals.
+
+A thorough analysis must include clear identification of your budget's purpose in relation to your financial mission, goals, and objectives. Conduct comprehensive assessment of your financial needs and develop a plan to increase resources or modify goals if current resources fall short.
+
+Regular monitoring ensures your budget serves as an effective measurement tool for tracking progress toward your financial objectives while maintaining flexibility to adapt to changing circumstances.`
+        },
+        {
+            title: "Monitoring & Performance Management",
+            content: `Compare actual financial results to your budget regularly to detect changes in circumstances, discover transaction errors, and measure financial performance. When actual results vary significantly from your budget, determine the cause, evaluate the activity, and take corrective action.
+
+Operate within your budget constraints. Expenditures that exceed budget require justification and a formal plan to eliminate deficits. Ensure anticipated benefits are greater than costs for all planned activities, and provide adequate safeguards to protect against unauthorized use of financial resources.
+
+Monthly financial reports must be appropriate and accurate, providing clear identification of all revenue sources and expenditures. Include budget versus actual comparisons and highlight exception items that require immediate attention.
+
+Implement control procedures to address recurring reporting exceptions and ensure timely corrective action before issues compound into larger financial problems.`
+        },
+        {
+            title: "Strategic Financial Analysis",
+            content: `Before significantly adding, changing, or eliminating budget categories, conduct thorough cost-benefit analysis. Include quantified statements of benefits, comprehensive assessment of direct and indirect costs, identification of funding sources, and assessment of all financial risks.
+
+Maintain detailed documentation of budget decisions, track variances from planned allocations, and implement corrective measures when necessary. Regular re-evaluation of assumptions and financial projections ensures your budget reflects current economic conditions and personal circumstances.
+
+Management must weigh costs and risks before deciding to significantly modify financial activities. Analysis should include clear statements of purpose, quantified benefits, thorough cost assessments, and identification of potential problems and underlying assumptions.
+
+Documentation of corrective actions must include why variances occurred, how budgets were revised, what accounts were affected, when actions were taken, and who authorized the changes.`
+        }
+    ];
+
+    // Carousel navigation
+    const nextSlide = () => {
+        setCurrentCarouselIndex((prev) => (prev + 1) % carouselContent.length);
+    };
+
+    const prevSlide = () => {
+        setCurrentCarouselIndex((prev) => (prev - 1 + carouselContent.length) % carouselContent.length);
+    };
+
+    // Check if user has budget data to enable View Budget button
+    const hasBudgetData = () => {
+        return Object.values(budgetData.budgets).some(amount => parseFloat(amount) > 0);
+    };
+
     return (
         <>
             <div className="budget-background"></div>
-            <div className={`budget-container ${shouldShowChart() ? 'split' : 'centered'}`}>
-            <div className="budget-card">
-                <div className="card-header">
-                    <h2>Configure Budget</h2>
-                    <p className="card-subtitle">Select a category and assign a value to continue.</p>
-                </div>
-                
-                <div className="income-section">
-                    <label htmlFor="monthly-income">Monthly Income:</label>
-                    <div className="income-input-group">
-                        <input
-                            id="monthly-income"
-                            type="text"
-                            value={budgetData.monthlyIncome ? formatInputValue(budgetData.monthlyIncome) : ''}
-                            onChange={handleIncomeChange}
-                            onKeyPress={handleIncomeKeyPress}
-                            placeholder="$0.00"
-                        />
-                        <button onClick={setMonthlyIncome} className="income-enter-btn">
-                            Enter
-                        </button>
-                    </div>
-                    <div className="remaining-bar-container">
-                        <div 
-                            className="remaining-bar" 
-                            style={{ width: `${calculateRemainingPercentage()}%` }}
-                        ></div>
-                    </div>
-                    <div className="remaining-income">
-                        Remaining: {formatCurrency(calculateRemaining())}
-                    </div>
-                </div>
-
-                <div className="budget-setting">
-                    <select 
-                        value={selectedCategory} 
-                        onChange={handleCategoryChange}
-                        className="category-select"
-                    >
-                        <option value="" disabled>Select a Category</option>
-                        {getAllCategories().map(category => (
-                            <option key={category} value={category}>
-                                {category}
-                            </option>
-                        ))}
-                        <option value="ADD_NEW_CATEGORY">Add a Category</option>
-                    </select>
-                    <p className="category-limit-text">Maximum Category Limit: 16</p>
-
-                    {showAddCategory && (
-                        <div className="add-category-section">
-                            <input
-                                type="text"
-                                value={newCategoryName}
-                                onChange={(e) => setNewCategoryName(e.target.value)}
-                                onKeyPress={handleNewCategoryKeyPress}
-                                placeholder="Enter category name"
-                                maxLength={30}
-                                className="new-category-input"
-                            />
+            <div className="budget-page-container">
+                <div className="budget-content-section">
+                    {/* Configure Budget Card */}
+                    <div className="budget-card">
+                        <div className="card-header">
+                            <h2>Configure Budget</h2>
+                            <p className="card-subtitle">Select a category and assign a value to continue.</p>
                         </div>
-                    )}
-
-                    <div className="budget-input-section">
-                        <span className="budget-label">Set Budget:</span>
-                        <input
-                            type="text"
-                            value={budgetAmount ? (budgetData.currencyMode === 'dollars' ? formatInputValue(budgetAmount) : parseFloat(budgetAmount).toFixed(1)) : ''}
-                            onChange={handleBudgetChange}
-                            onKeyPress={showAddCategory ? handleNewCategoryKeyPress : handleBudgetKeyPress}
-                            placeholder={budgetData.currencyMode === 'dollars' ? '$0.00' : '0.00%'}
-                        />
-                        <div className="currency-controls">
-                            <div 
-                                className={`currency-toggle-slider ${isLocked ? 'locked' : ''}`} 
-                                onClick={toggleCurrencyMode}
-                            >
-                                <span className={`slider-option ${budgetData.currencyMode === 'dollars' ? 'active' : ''}`}>$</span>
-                                <span className={`slider-option ${budgetData.currencyMode === 'percentage' ? 'active' : ''}`}>%</span>
+                        
+                        <div className="income-section">
+                            <label htmlFor="monthly-income">Monthly Income:</label>
+                            <div className="income-input-group">
+                                <input
+                                    id="monthly-income"
+                                    type="text"
+                                    value={budgetData.monthlyIncome ? formatInputValue(budgetData.monthlyIncome) : ''}
+                                    onChange={handleIncomeChange}
+                                    onKeyPress={handleIncomeKeyPress}
+                                    placeholder="$0.00"
+                                />
+                                <button onClick={setMonthlyIncome} className="income-enter-btn">
+                                    Enter
+                                </button>
                             </div>
-                            <button 
-                                className={`lock-button ${isLocked ? 'locked' : ''}`}
-                                onClick={toggleLock}
-                                disabled={!budgetAmount || parseFloat(budgetAmount) <= 0}
-                                title={isLocked ? 'Unlock currency mode' : 'Lock currency mode'}
+                            <div className="remaining-bar-container">
+                                <div 
+                                    className="remaining-bar" 
+                                    style={{ width: `${calculateRemainingPercentage()}%` }}
+                                ></div>
+                            </div>
+                            <div className="remaining-income">
+                                Remaining: {formatCurrency(calculateRemaining())}
+                            </div>
+                        </div>
+
+                        <div className="budget-setting">
+                            <select 
+                                value={selectedCategory} 
+                                onChange={handleCategoryChange}
+                                className="category-select"
                             >
-                                {isLocked ? '🔒' : '🔓'}
+                                <option value="" disabled>Select a Category</option>
+                                {getAllCategories().map(category => (
+                                    <option key={category} value={category}>
+                                        {category}
+                                    </option>
+                                ))}
+                                <option value="ADD_NEW_CATEGORY">Add a Category</option>
+                            </select>
+                            <p className="category-limit-text">Maximum Category Limit: 16</p>
+
+                            {showAddCategory && (
+                                <div className="add-category-section">
+                                    <input
+                                        type="text"
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                        onKeyPress={handleNewCategoryKeyPress}
+                                        placeholder="Enter category name"
+                                        maxLength={30}
+                                        className="new-category-input"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="budget-input-section">
+                                <span className="budget-label">Set Budget:</span>
+                                <input
+                                    type="text"
+                                    value={budgetAmount ? formatInputValue(budgetAmount) : ''}
+                                    onChange={handleBudgetChange}
+                                    onKeyPress={showAddCategory ? handleNewCategoryKeyPress : handleBudgetKeyPress}
+                                    placeholder="$0.00"
+                                />
+                            </div>
+
+                            <button 
+                                onClick={showAddCategory ? createCategoryWithBudget : setBudget} 
+                                className="set-budget-btn"
+                            >
+                                Enter
+                            </button>
+                        </div>
+
+                        <div className="view-all-section">
+                            <button 
+                                onClick={() => setShowViewAll(true)}
+                                className="view-all-btn"
+                            >
+                                View All
                             </button>
                         </div>
                     </div>
 
-                    <button 
-                        onClick={showAddCategory ? createCategoryWithBudget : setBudget} 
-                        className="set-budget-btn"
-                    >
-                        Enter
-                    </button>
-                </div>
-
-                {selectedCategory && !showAddCategory && (
-                    <div className="remove-category-section">
+                    {/* User Guide with Carousel */}
+                    <div className={`budget-user-guide ${showChart ? 'hide' : 'show'}`}>
+                        <h3 className="guide-section-heading">Financial Management Principles</h3>
+                        <div className="guide-carousel-container">
+                            <div className="carousel-nav-buttons">
+                                <button 
+                                    className="carousel-nav-btn" 
+                                    onClick={prevSlide}
+                                    disabled={currentCarouselIndex === 0}
+                                >
+                                    ‹
+                                </button>
+                                <button 
+                                    className="carousel-nav-btn" 
+                                    onClick={nextSlide}
+                                    disabled={currentCarouselIndex === carouselContent.length - 1}
+                                >
+                                    ›
+                                </button>
+                            </div>
+                            <div 
+                                className="guide-carousel-wrapper" 
+                                style={{ transform: `translateX(-${currentCarouselIndex * 33.33}%)` }}
+                            >
+                                {carouselContent.map((item, index) => (
+                                    <div key={index} className="guide-section">
+                                        <h4 className="guide-subsection-title">{item.title}</h4>
+                                        {item.content.split('\n\n').map((paragraph, pIndex) => (
+                                            <p key={pIndex}>{paragraph}</p>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        {/* Carousel indicator */}
+                        <div className="carousel-indicator">
+                            {currentCarouselIndex + 1} of {carouselContent.length}
+                        </div>
                         <button 
-                            onClick={() => removeCategory(selectedCategory)}
-                            className="remove-category-btn"
+                            className={`view-budget-btn ${hasBudgetData() ? 'enabled' : 'disabled'}`}
+                            onClick={() => setShowChart(true)}
+                            disabled={!hasBudgetData()}
                         >
-                            Remove Category
+                            View Budget
                         </button>
                     </div>
-                )}
 
-                <div className="view-all-section">
-                    <button 
-                        onClick={() => setShowViewAll(true)}
-                        className="view-all-btn"
-                    >
-                        View All
-                    </button>
+                    {/* Chart Container */}
+                    <div className={`budget-chart-container ${showChart ? 'show' : 'hide'}`}>
+                        <h3 className="chart-title">Budget Distribution</h3>
+                        <div className="chart-wrapper">
+                            <PolarArea 
+                                data={getChartData()} 
+                                options={chartOptions}
+                            />
+                        </div>
+                        {/* Housing category display */}
+                        {getHousingBudget() > 0 && (
+                            <div className="housing-display">
+                                <p>Housing: {formatCurrency(getHousingBudget())}</p>
+                                <small>(Excluded from chart for better visualization)</small>
+                            </div>
+                        )}
+                        <button 
+                            className="back-to-guide-btn"
+                            onClick={() => setShowChart(false)}
+                        >
+                            Back to Guide
+                        </button>
+                    </div>
                 </div>
             </div>
-
-            {/* Chart Container - Only show when 6+ categories have budgets */}
-            <div className={`budget-chart-container ${shouldShowChart() ? 'show' : ''}`}>
-                <h3 className="chart-title">Budget Distribution</h3>
-                <div className="chart-wrapper">
-                    <PolarArea 
-                        data={getChartData()} 
-                        options={chartOptions}
-                    />
-                </div>
-            </div>
-        </div>
 
         {/* Modals - Outside budget container */}
         {showLimitWarning && (
