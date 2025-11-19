@@ -11,9 +11,9 @@ function TransactionRadarChart({ data = [] }) {
     const svg = d3.select(svgRef.current)
     svg.selectAll("*").remove()
 
-    const margin = { top: 50, right: 50, bottom: 50, left: 50 }
-    const width = 400 - margin.left - margin.right
-    const height = 400 - margin.top - margin.bottom
+    const margin = { top: 120, right: 120, bottom: 120, left: 120 }
+    const width = 600 - margin.left - margin.right
+    const height = 600 - margin.top - margin.bottom
     const radius = Math.min(width, height) / 2
 
     const container = svg
@@ -29,7 +29,21 @@ function TransactionRadarChart({ data = [] }) {
       normalizedValue: (d.percentage / maxPercentage) * 100
     }))
 
-    const angleSlice = (Math.PI * 2) / normalizedData.length
+    // Calculate angles based on number of categories (c)
+    const c = normalizedData.length
+    const angleSlice = (Math.PI * 2) / c
+    
+    // Function to calculate label position at outer edge of chart
+    const calculateLabelPosition = (categoryIndex) => {
+      const angle = angleSlice * categoryIndex - Math.PI / 2 // Start from top
+      const labelDistance = radius + 25 // Position just outside the chart edge
+      
+      return {
+        x: labelDistance * Math.cos(angle),
+        y: labelDistance * Math.sin(angle),
+        angle: angle * (180 / Math.PI) // Convert to degrees for text anchor calculation
+      }
+    }
 
     // Create radial scale
     const rScale = d3.scaleLinear()
@@ -101,22 +115,39 @@ function TransactionRadarChart({ data = [] }) {
       .style("stroke", "white")
       .style("stroke-width", "2px")
 
-    // Add category labels
+    // Add category labels (first word only) using calculated positions
     container.selectAll(".radarLabel")
       .data(normalizedData)
       .enter().append("text")
       .attr("class", "radarLabel")
-      .attr("x", (d, i) => (radius + 20) * Math.cos(angleSlice * i - Math.PI / 2))
-      .attr("y", (d, i) => (radius + 20) * Math.sin(angleSlice * i - Math.PI / 2))
+      .attr("x", (d, i) => calculateLabelPosition(i).x)
+      .attr("y", (d, i) => calculateLabelPosition(i).y)
       .attr("dy", "0.35em")
       .style("font-size", "12px")
       .style("font-weight", "600")
       .style("fill", "var(--text-color)")
       .style("text-anchor", (d, i) => {
-        const angle = (angleSlice * i) * (180 / Math.PI)
-        return angle > 90 && angle < 270 ? "end" : "start"
+        const pos = calculateLabelPosition(i)
+        return pos.angle > 90 && pos.angle < 270 ? "end" : "start"
       })
-      .text(d => d.category)
+      .text(d => d.category.split(' ')[0])
+
+    // Add percentage labels below category names using calculated positions
+    container.selectAll(".radarPercentage")
+      .data(normalizedData)
+      .enter().append("text")
+      .attr("class", "radarPercentage")
+      .attr("x", (d, i) => calculateLabelPosition(i).x)
+      .attr("y", (d, i) => calculateLabelPosition(i).y)
+      .attr("dy", "1.8em")
+      .style("font-size", "10px")
+      .style("font-weight", "normal")
+      .style("fill", "var(--text-secondary)")
+      .style("text-anchor", (d, i) => {
+        const pos = calculateLabelPosition(i)
+        return pos.angle > 90 && pos.angle < 270 ? "end" : "start"
+      })
+      .text(d => `${d.percentage.toFixed(1)}%`)
 
     // Add percentage labels on hover
     const tooltip = container.append("g")
@@ -177,18 +208,6 @@ function TransactionRadarChart({ data = [] }) {
   return (
     <div className="transaction-radar-chart">
       <svg ref={svgRef}></svg>
-      {data.length > 0 && (
-        <div className="chart-legend">
-          {data.map((item, index) => (
-            <div key={index} className="legend-item">
-              <div className="legend-color"></div>
-              <span className="legend-text">
-                {item.category}: {item.percentage.toFixed(1)}%
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

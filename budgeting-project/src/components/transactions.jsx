@@ -341,8 +341,14 @@ function Transactions() {
       }
     })
 
-    // Sort by date (newest first)
-    return dummyTransactions.sort((a, b) => new Date(b.date) - new Date(a.date))
+    // Sort by date (newest first) - parse dates properly to avoid timezone issues
+    return dummyTransactions.sort((a, b) => {
+      const parseDate = (dateStr) => {
+        const [year, month, day] = dateStr.split('-').map(Number)
+        return new Date(year, month - 1, day)
+      }
+      return parseDate(b.date) - parseDate(a.date)
+    })
   }, [budgetData.monthlyIncome])
 
   // Get transactions to display (limited or all)
@@ -396,7 +402,11 @@ function Transactions() {
 
   // Format date for display
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Parse the date string properly to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month is 0-indexed
+    
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -408,7 +418,8 @@ function Transactions() {
       <div className="transactions-content">
         {/* Left side - Transaction Entry Form */}
         <div className="transaction-entry-card">
-          <h2>Add New Transaction</h2>
+          <h2>New Record</h2>
+          <p className="form-tooltip">Add your transactions to track spending and manage your budget</p>
           
           {/* Income Section */}
           <div className="income-section">
@@ -426,14 +437,14 @@ function Transactions() {
                 Enter
               </button>
             </div>
-            <div className="remaining-info">
-              <span>Remaining: {formatCurrency(remainingIncome)}</span>
-            </div>
             <div className="remaining-bar-container">
               <div 
                 className="remaining-bar" 
                 style={{ width: `${remainingPercentage}%` }}
               ></div>
+            </div>
+            <div className="remaining-info">
+              <span>Remaining: {formatCurrency(remainingIncome)}</span>
             </div>
           </div>
 
@@ -621,20 +632,22 @@ function Transactions() {
           ) : (
             <div className="transaction-chart-container">
               <h3>Transaction Distribution</h3>
-              {displayedTransactions.length === 0 ? (
-                <div className="empty-state">
-                  <p>No transaction data available for chart visualization.</p>
-                </div>
-              ) : (
-                <>
-                  {showDummyData && (
-                    <div className="dummy-data-notice">
-                      <p>📊 Sample transaction distribution shown below. Add your first transaction to see your real data.</p>
-                    </div>
-                  )}
-                  <TransactionRadarChart data={transactionsByCategory} />
-                </>
-              )}
+              <div className="chart-content-wrapper">
+                {displayedTransactions.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No transaction data available for chart visualization.</p>
+                  </div>
+                ) : (
+                  <>
+                    {showDummyData && (
+                      <div className="dummy-data-notice">
+                        <p>📊 Sample transaction distribution shown below. Add your first transaction to see your real data.</p>
+                      </div>
+                    )}
+                    <TransactionRadarChart data={transactionsByCategory} />
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>
