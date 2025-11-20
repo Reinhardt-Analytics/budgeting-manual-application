@@ -92,7 +92,7 @@ function App() {
                   </button>
                 </div>
               </div>
-              <div className="image-placeholder">
+              <div className="chart-container">
                   <HomeRadarChart />
               </div>
             </div>

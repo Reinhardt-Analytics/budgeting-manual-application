@@ -320,15 +320,14 @@ main {
   margin: 2rem 0;
 }
 
-.image-placeholder {
-  width: 20rem; 
-  height: 20rem; 
-  border: 2px dashed var(--header-border);
-  border-radius: 8px;
+.chart-container {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  min-height: 500px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  background-color: var(--button-bg);
   flex-shrink: 0;
   margin-left: 1rem;
 }

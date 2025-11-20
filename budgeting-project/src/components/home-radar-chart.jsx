@@ -336,6 +336,16 @@ const HomeRadarChart = () => {
             
             {/* Controls outside the card */}
             <div className="external-controls">
+                <div className="chart-legend">
+                    <div className="legend-item">
+                        <span className="legend-color" style={{backgroundColor: 'rgba(54, 162, 235, 0.7)'}}></span>
+                        <span>Budget Distribution (%)</span>
+                    </div>
+                    <div className="legend-item">
+                        <span className="legend-color" style={{backgroundColor: 'rgba(255, 99, 132, 0.7)'}}></span>
+                        <span>Transaction vs. Budget (%)</span>
+                    </div>
+                </div>
                 <div className="income-control">
                     <div className="income-input-wrapper">
                         <span className="income-label">Set Income:</span>
@@ -355,16 +365,6 @@ const HomeRadarChart = () => {
                     <button onClick={randomizeData} className="randomize-btn">
                         Randomize Data
                     </button>
-                </div>
-                <div className="chart-legend">
-                    <div className="legend-item">
-                        <span className="legend-color" style={{backgroundColor: 'rgba(54, 162, 235, 0.7)'}}></span>
-                        <span>Budget Distribution (%)</span>
-                    </div>
-                    <div className="legend-item">
-                        <span className="legend-color" style={{backgroundColor: 'rgba(255, 99, 132, 0.7)'}}></span>
-                        <span>Transaction vs. Budget (%)</span>
-                    </div>
                 </div>
             </div>
         </div>
