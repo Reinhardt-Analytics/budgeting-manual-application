@@ -253,10 +253,10 @@ input:checked + .slider:before {
 }
 
 main {
-  margin-top: 90px; 
-  margin-bottom: 90px; 
+  margin-top: 20px; 
+  margin-bottom: 40px; 
   padding: 2rem;
-  min-height: calc(100vh - 180px); 
+  min-height: calc(100vh - 60px); 
   position: relative;
 }
 

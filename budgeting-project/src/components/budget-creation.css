@@ -10,6 +10,31 @@
   z-index: -10; /* Lowest possible z-index */
 }
 
+.budget-page-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: auto; /* Adaptive to content */
+  min-height: auto; /* Remove fixed height constraints */
+  padding: 0; /* Zero padding as requested */
+  margin: 0; /* Zero margin as requested */
+  position: relative;
+  z-index: 5;
+}
+
+.budget-content-section {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 30px;
+  width: 100%;
+  height: auto; /* Adaptive to content */
+  padding: 10px;
+  box-sizing: border-box;
+}
+
 .budget-container {
   display: flex;
   justify-content: center;
@@ -44,6 +69,7 @@
   z-index: 10; /* Above background, below theme toggle and modals */
   max-height: calc(100vh - 80px); /* Fit within screen */
   overflow-y: auto; /* Allow internal scrolling if needed */
+  flex-shrink: 0;
 }
 
 .budget-chart-container {
@@ -142,18 +168,21 @@
 
 .income-enter-btn {
   padding: 10px 16px; /* Reduced padding */
-  background-color: var(--primary-shade, rgba(0, 123, 255, 0.8));
-  color: white;
-  border: none;
+  background-color: var(--button-bg, #f0f0f0);
+  color: var(--button-text, #555555);
+  border: 2px solid transparent;
   border-radius: 4px; /* Smaller border radius */
   cursor: pointer;
   font-size: 14px; /* Smaller font size */
   font-weight: 500;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .income-enter-btn:hover {
-  background-color: var(--primary-shade-hover, rgba(0, 123, 255, 0.9));
+  background-color: var(--button-hover, #d0d0d0);
+  border-color: var(--primary-hover, #535bf2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(83, 91, 242, 0.2);
 }
 
 .remaining-bar-container {
@@ -436,18 +465,21 @@
 .set-budget-btn {
   width: 100%;
   padding: 10px; /* Reduced padding */
-  background-color: var(--success-shade, rgba(40, 167, 69, 0.8));
-  color: white;
-  border: none;
+  background-color: var(--button-bg, #f0f0f0);
+  color: var(--button-text, #555555);
+  border: 2px solid transparent;
   border-radius: 4px; /* Smaller border radius */
   cursor: pointer;
   font-size: 14px; /* Smaller font size */
   font-weight: 500;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .set-budget-btn:hover {
-  background-color: var(--success-shade-hover, rgba(40, 167, 69, 0.9));
+  background-color: var(--button-hover, #d0d0d0);
+  border-color: var(--primary-hover, #535bf2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(83, 91, 242, 0.2);
 }
 
 /* Current Category Display */
@@ -506,18 +538,21 @@
 
 .view-all-btn {
   padding: 10px 20px; /* Reduced padding */
-  background-color: var(--info-shade, rgba(23, 162, 184, 0.8));
-  color: white;
-  border: none;
+  background-color: var(--button-bg, #f0f0f0);
+  color: var(--button-text, #555555);
+  border: 2px solid transparent;
   border-radius: 4px; /* Smaller border radius */
   cursor: pointer;
   font-size: 14px; /* Smaller font size */
   font-weight: 500;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .view-all-btn:hover {
-  background-color: var(--info-shade-hover, rgba(23, 162, 184, 0.9));
+  background-color: var(--button-hover, #d0d0d0);
+  border-color: var(--primary-hover, #535bf2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(83, 91, 242, 0.2);
 }
 
 /* Modal Styles */
@@ -775,6 +810,204 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Budget User Guide Styles */
+.budget-user-guide {
+  max-width: 500px;
+  width: 100%;
+  max-height: calc(100vh - 80px);
+  min-height: 500px;
+  background: var(--card-background, #f8f8f8);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+  transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.budget-user-guide.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.budget-user-guide.hide {
+  opacity: 0;
+  transform: translateX(-20px);
+  pointer-events: none;
+}
+
+.guide-section-heading {
+  text-align: center;
+  margin-bottom: 15px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+.guide-carousel-container {
+  height: auto;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  perspective: 1000px;
+  display: flex;
+  flex-direction: column;
+}
+
+.carousel-nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.carousel-nav-btn {
+  background: var(--button-bg, #f0f0f0);
+  color: var(--button-text, #555555);
+  border: 2px solid transparent;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.carousel-nav-btn:hover:not(:disabled) {
+  background: var(--button-hover, #d0d0d0);
+  border-color: var(--primary-hover, #535bf2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(83, 91, 242, 0.2);
+}
+
+.carousel-nav-btn:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+.guide-carousel-wrapper {
+  display: flex;
+  transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+  height: 100%;
+  width: 300%;
+  flex: 1;
+}
+
+.guide-section {
+  flex: 0 0 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 15px;
+  box-sizing: border-box;
+  transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.guide-subsection-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-color, #2c3e50);
+  margin-bottom: 15px;
+  margin-top: 0;
+  text-align: center;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-color, #e0e0e0);
+}
+
+.guide-section p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-color, #4a4a4a);
+  margin-bottom: 12px;
+  text-align: justify;
+  flex-grow: 1;
+}
+
+.carousel-indicator {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color, #666);
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 8px;
+  background: var(--indicator-bg, rgba(0, 123, 255, 0.1));
+  border-radius: 20px;
+  border: 1px solid var(--border-color, #007bff);
+}
+
+.view-budget-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--button-bg, #f0f0f0);
+  color: var(--button-text, #555555);
+  border: 2px solid transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 1100px) {
+  .budget-content-section {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .budget-user-guide {
+    width: 100%;
+    max-width: 500px;
+  }
+}
+
+.view-budget-btn.enabled:hover {
+  background: var(--button-hover, #d0d0d0);
+  border-color: var(--primary-hover, #535bf2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(83, 91, 242, 0.2);
+}
+
+.view-budget-btn.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Dark theme support for guide */
+[data-theme="dark"] .budget-user-guide {
+  background-color: #2d3748;
+}
+
+[data-theme="dark"] .guide-section-heading,
+[data-theme="dark"] .guide-subsection-title {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .guide-section p {
+  color: #cbd5e0;
+}
+
+[data-theme="dark"] .carousel-indicator {
+  color: #a0aec0;
+  background: rgba(74, 144, 226, 0.15);
+  border-color: #4a90e2;
+}
+
+[data-theme="dark"] .guide-subsection-title {
+  color: #e2e8f0;
+  border-bottom-color: #4a5568;
+}
+
 /* Light theme explicit variables */
 [data-theme="light"] {
   --card-background: #ffffff;
@@ -812,4 +1045,14 @@
 /* Ensure the background has fallback colors */
 .budget-background {
   background-color: #e8e8e8; /* Fallback background - darker gray */
+}
+
+/* Dark theme button hover effects */
+[data-theme="dark"] .set-budget-btn:hover,
+[data-theme="dark"] .income-enter-btn:hover,
+[data-theme="dark"] .view-all-btn:hover,
+[data-theme="dark"] .carousel-nav-btn:hover:not(:disabled),
+[data-theme="dark"] .view-budget-btn.enabled:hover {
+  border-color: var(--primary-hover, #535bf2);
+  box-shadow: 0 2px 8px rgba(83, 91, 242, 0.3);
 }

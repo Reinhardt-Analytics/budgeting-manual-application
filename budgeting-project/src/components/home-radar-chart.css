@@ -71,6 +71,7 @@
 .randomize-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--header-border);
 }
 
 [data-theme="dark"] .randomize-btn {
@@ -112,9 +113,11 @@
     font-size: 10px;
     text-align: center;
     min-width: 40px;
+    padding: 0;
+    margin: 0;
 }
 
-/* Position category values directly below category names on the radar chart */
+/* Position category values close to chart edges */
 .category-0 { /* Housing - top, show value above label */
     top: 0.5rem;
     left: 50%;
@@ -122,15 +125,15 @@
 }
 
 .category-1 { /* Utilities - top right, show value above label */
-    top: 2.8125rem;
+    top: 2.5rem;
     left: 50%;
-    transform: translateX(10.8253rem);
+    transform: translateX(11rem);
 }
 
 .category-2 { /* Transport - bottom right, show value below label */
-    bottom: 2.8125rem;
+    bottom: 2.5rem;
     left: 50%;
-    transform: translateX(10.8253rem);
+    transform: translateX(11rem);
 }
 
 .category-3 { /* Medical - bottom, show value below label */
@@ -140,15 +143,15 @@
 }
 
 .category-4 { /* Groceries - bottom left, show value below label */
-    bottom: 2.8125rem;
+    bottom: 2.5rem;
     left: 50%;
-    transform: translateX(-10.8253rem);
+    transform: translateX(-11rem);
 }
 
 .category-5 { /* Savings - top left, show value above label */
-    top: 2.8125rem;
+    top: 2.5rem;
     left: 50%;
-    transform: translateX(-10.8253rem);
+    transform: translateX(-11rem);
 }
 
 .budget-value, .transaction-value {
