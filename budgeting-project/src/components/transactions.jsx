@@ -30,8 +30,7 @@ function Transactions() {
   })
   const [showAllTransactions, setShowAllTransactions] = useState(false)
   const [viewMode, setViewMode] = useState('list') // 'list' or 'chart'
-  const [newCategoryName, setNewCategoryName] = useState('')
-  const [showAddCategory, setShowAddCategory] = useState(false)
+  const [categoryCount, setCategoryCount] = useState(12) // 8, 12, or 16 categories
   const [showDummyData, setShowDummyData] = useState(() => {
     const hasRealTransactions = localStorage.getItem('transactions')
     const parsedTransactions = hasRealTransactions ? JSON.parse(hasRealTransactions) : []
@@ -81,12 +80,16 @@ function Transactions() {
     }
   }, [transactions])
 
-  // Get all available categories from budget data
+  // Predefined category sets
+  const categoryOptions = {
+    8: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Savings', 'Debt', 'Lifestyle'],
+    12: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Insurance', 'Health', 'Savings', 'Investing', 'Debt', 'Personal', 'Leisure'],
+    16: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Insurance', 'Health', 'Savings', 'Investing', 'Debt', 'Personal', 'Leisure', 'Education', 'Giving', 'Pets', 'Miscellaneous']
+  }
+  
   const availableCategories = useMemo(() => {
-    const defaultCategories = budgetData.defaultCategories || []
-    const customCategories = budgetData.customCategories || []
-    return [...defaultCategories, ...customCategories]
-  }, [budgetData])
+    return categoryOptions[categoryCount] || categoryOptions[8]
+  }, [categoryCount])
 
   // Handle amount input formatting
   const handleAmountChange = (value) => {
@@ -310,10 +313,13 @@ function Transactions() {
 
     // Generate multiple smaller transactions for other categories
     const otherCategories = [
-      { name: 'Food', percentage: 0.12, count: 4 },
-      { name: 'Entertainment', percentage: 0.06, count: 3 },
-      { name: 'Shopping', percentage: 0.05, count: 3 },
-      { name: 'Healthcare', percentage: 0.03, count: 2 }
+      { name: 'Food', percentage: 0.12, count: 8 },
+      { name: 'Entertainment', percentage: 0.06, count: 6 },
+      { name: 'Shopping', percentage: 0.05, count: 6 },
+      { name: 'Healthcare', percentage: 0.03, count: 4 },
+      { name: 'Education', percentage: 0.02, count: 3 },
+      { name: 'Personal Care', percentage: 0.015, count: 2 },
+      { name: 'Gifts', percentage: 0.01, count: 2 }
     ]
 
     let dummyId = 4
@@ -408,7 +414,23 @@ function Transactions() {
       <div className="transactions-content">
         {/* Left side - Transaction Entry Form */}
         <div className="transaction-entry-card">
-          <h2>Add New Transaction</h2>
+          <h2>New Entry</h2>
+          
+          {/* View Toggle moved here */}
+          <div className="view-toggle">
+            <button 
+              className={viewMode === 'list' ? 'active' : ''}
+              onClick={() => setViewMode('list')}
+            >
+              List View
+            </button>
+            <button 
+              className={viewMode === 'chart' ? 'active' : ''}
+              onClick={() => setViewMode('chart')}
+            >
+              Chart View
+            </button>
+          </div>
           
           {/* Income Section */}
           <div className="income-section">
@@ -469,13 +491,7 @@ function Transactions() {
               <select
                 id="category"  
                 value={newTransaction.category}
-                onChange={(e) => {
-                  if (e.target.value === 'add-new-category') {
-                    setShowAddCategory(true)
-                  } else {
-                    handleInputChange('category', e.target.value)
-                  }
-                }}
+                onChange={(e) => handleInputChange('category', e.target.value)}
                 required
               >
                 <option value="">Select a category</option>
@@ -484,45 +500,33 @@ function Transactions() {
                     {category}
                   </option>
                 ))}
-                {availableCategories.length < 16 && (
-                  <option value="add-new-category">Add New Category</option>
-                )}
               </select>
               
-              {showAddCategory && (
-                <div className="add-category-section">
-                  <div className="add-category-input-group">
-                    <input
-                      type="text"
-                      placeholder="Enter new category name"
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && createNewCategory()}
-                      className="category-name-input"
-                    />
-                    <button
-                      type="button"
-                      onClick={createNewCategory}
-                      className="add-category-btn"
-                    >
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAddCategory(false)
-                        setNewCategoryName('')
-                      }}
-                      className="cancel-category-btn"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                  <div className="category-limit-info">
-                    {availableCategories.length}/16 categories used
-                  </div>
-                </div>
-              )}
+              {/* Category Count Toggle */}
+              <div className="category-count-toggle">
+                <button 
+                  type="button"
+                  className={categoryCount === 8 ? 'active' : ''}
+                  onClick={() => setCategoryCount(8)}
+                >
+                  Eight
+                </button>
+                <button 
+                  type="button"
+                  className={categoryCount === 12 ? 'active' : ''}
+                  onClick={() => setCategoryCount(12)}
+                >
+                  Twelve
+                </button>
+                <button 
+                  type="button"
+                  className={categoryCount === 16 ? 'active' : ''}
+                  onClick={() => setCategoryCount(16)}
+                >
+                  Sixteen
+                </button>
+              </div>
+              <label className="category-count-label">Number of Categories</label>
             </div>
 
             <div className="form-group">
@@ -549,27 +553,19 @@ function Transactions() {
 
         {/* Right side - Transaction List or Chart */}
         <div className="transaction-display">
-          <div className="display-header">
-            <div className="view-toggle">
-              <button 
-                className={viewMode === 'list' ? 'active' : ''}
-                onClick={() => setViewMode('list')}
-              >
-                List View
-              </button>
-              <button 
-                className={viewMode === 'chart' ? 'active' : ''}
-                onClick={() => setViewMode('chart')}
-              >
-                Chart View
-              </button>
-            </div>
-          </div>
 
           {viewMode === 'list' ? (
             <div className="transaction-list-container">
               <div className="list-header">
                 <h3>Recent Transactions</h3>
+                {displayedTransactions.length > 0 && (
+                  <div className="total-amount-display">
+                    <span>Total Amount: {formatCurrency(totalTransactionAmount)}</span>
+                  </div>
+                )}
+                {showDummyData && (
+                  <p className="sample-data-tooltip">Sample data shown below. Enter in data to refresh page information.</p>
+                )}
                 {(showDummyData ? generateDummyTransactions().length : transactions.length) > 15 && (
                   <button 
                     className="view-all-btn"
@@ -586,20 +582,30 @@ function Transactions() {
                 </div>
               ) : (
                 <>
-                  {showDummyData && (
-                    <div className="dummy-data-notice">
-                      <p>📊 Sample data shown below. Add your first transaction to see your real data.</p>
-                    </div>
-                  )}
                   <div className="transaction-list">
-                    {displayedTransactions.map(transaction => (
-                      <div key={transaction.id} className={`transaction-item ${transaction.isDummy ? 'dummy-transaction' : ''}`}>
-                        <div className="transaction-info">
-                          <div className="transaction-category">{transaction.category}</div>
-                          <div className="transaction-date">{formatDate(transaction.date)}</div>
-                        </div>
-                        <div className="transaction-amount">
-                          {formatCurrency(transaction.amount)}
+                    {Object.entries(
+                      displayedTransactions.reduce((groups, transaction) => {
+                        const date = transaction.date;
+                        if (!groups[date]) {
+                          groups[date] = [];
+                        }
+                        groups[date].push(transaction);
+                        return groups;
+                      }, {})
+                    )
+                    .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA))
+                    .map(([date, transactions]) => (
+                      <div key={date} className="date-group">
+                        <div className="date-header">{formatDate(date)}</div>
+                        <div className="date-transactions">
+                          {transactions.map(transaction => (
+                            <div key={transaction.id} className="transaction-entry">
+                              <div className="transaction-category">{transaction.category}</div>
+                              <div className="transaction-amount">
+                                {formatCurrency(transaction.amount)}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     ))}
@@ -607,16 +613,7 @@ function Transactions() {
                 </>
               )}
 
-              {displayedTransactions.length > 0 && (
-                <div className="transaction-summary">
-                  <div className="summary-item">
-                    <span>Total Transactions: {showDummyData ? generateDummyTransactions().length : transactions.length}</span>
-                  </div>
-                  <div className="summary-item">
-                    <span>Total Amount: {formatCurrency(totalTransactionAmount)}</span>
-                  </div>
-                </div>
-              )}
+
             </div>
           ) : (
             <div className="transaction-chart-container">
@@ -627,11 +624,6 @@ function Transactions() {
                 </div>
               ) : (
                 <>
-                  {showDummyData && (
-                    <div className="dummy-data-notice">
-                      <p>📊 Sample transaction distribution shown below. Add your first transaction to see your real data.</p>
-                    </div>
-                  )}
                   <TransactionRadarChart data={transactionsByCategory} />
                 </>
               )}
