@@ -15,10 +15,11 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  height: auto; /* Adaptive to content */
-  min-height: auto; /* Remove fixed height constraints */
-  padding: 0; /* Zero padding as requested */
-  margin: 0; /* Zero margin as requested */
+  height: auto;
+  min-height: auto;
+  margin-top: 20px;
+  margin-bottom: 40px;
+  padding: 2rem;
   position: relative;
   z-index: 5;
 }
@@ -33,6 +34,13 @@
   height: auto; /* Adaptive to content */
   padding: 10px;
   box-sizing: border-box;
+}
+
+.budget-content-centered {
+  display: flex;
+  gap: 3rem;
+  align-items: flex-start;
+  padding: 0 2rem;
 }
 
 .budget-container {
@@ -63,8 +71,9 @@
   padding: 20px; /* Reduced padding */
   padding-bottom: 28px; /* Slim bottom padding as requested */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Enhanced shadow for contrast */
-  max-width: 500px; /* Smaller max width */
-  width: 100%;
+  flex: 1;
+  text-align: left;
+  padding-right: 2rem;
   position: relative;
   z-index: 10; /* Above background, below theme toggle and modals */
   max-height: calc(100vh - 80px); /* Fit within screen */
@@ -93,12 +102,29 @@
 .budget-chart-container.show {
   opacity: 1;
   transform: translateX(0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.budget-chart-container.show canvas {
+  background: var(--card-background);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
 }
 
 .chart-wrapper {
   width: 100%;
-  height: calc(100% - 60px);
+  height: 100%;
+  max-height: 450px;
   position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .chart-title {
@@ -107,6 +133,111 @@
   font-size: 24px;
   font-weight: 600;
   color: var(--text-color, #333);
+}
+
+.chart-header-with-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.chart-header-with-button .chart-title {
+  margin: 0;
+  flex: 1;
+}
+
+.view-key-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
+.view-key-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.view-key-btn:active {
+  transform: translateY(0);
+}
+
+[data-theme="dark"] .view-key-btn {
+  background: linear-gradient(135deg, #4b5563, #374151);
+}
+
+.chart-content-wrapper {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.category-key-popup {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 15px;
+  min-width: 200px;
+  max-width: 250px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  position: absolute;
+  right: -270px;
+  top: 0;
+  z-index: 100;
+}
+
+.category-key-popup h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.key-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.key-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.key-numeral {
+  font-weight: 700;
+  color: #394353;
+  min-width: 25px;
+  text-align: right;
+  font-size: 14px;
+}
+
+.key-separator {
+  color: var(--secondary-text-color);
+  font-weight: 300;
+}
+
+.key-category {
+  font-weight: 500;
+  flex: 1;
 }
 
 .card-header {
@@ -812,33 +943,25 @@
 
 /* Budget User Guide Styles */
 .budget-user-guide {
-  max-width: 500px;
   width: 100%;
-  max-height: calc(100vh - 80px);
+  max-width: 600px;
+  height: auto;
   min-height: 500px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 1rem;
   background: var(--card-background, #f8f8f8);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  margin: 0;
   overflow: hidden;
   position: relative;
   z-index: 10;
-  transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
-  flex-shrink: 0;
-  display: flex;
   flex-direction: column;
-}
-
-.budget-user-guide.show {
   opacity: 1;
   transform: translateX(0);
-}
-
-.budget-user-guide.hide {
-  opacity: 0;
-  transform: translateX(-20px);
-  pointer-events: none;
 }
 
 .guide-section-heading {
@@ -847,6 +970,46 @@
   font-size: 20px;
   font-weight: 600;
   color: var(--text-color, #333);
+}
+
+.view-toggle-container {
+  display: flex;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  padding: 4px;
+  gap: 4px;
+  margin: 10px auto 15px auto;
+  width: fit-content;
+  justify-content: center;
+}
+
+.toggle-btn {
+  width: 100px;
+  padding: 10px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  font-size: 14px;
+  text-align: center;
+}
+
+.toggle-btn:hover:not(.active) {
+  background-color: rgba(57, 67, 83, 0.1);
+  color: var(--text-color);
+}
+
+.toggle-btn.active {
+  background-color: #394252;
+  color: white;
+}
+
+[data-theme="dark"] .toggle-btn.active {
+  background-color: #394252;
+  color: white;
 }
 
 .guide-carousel-container {
