@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import budgetDataTemplate from '../data/budgetData.json';
+import { EyeIcon } from './EyeIcon';
 import './budget-creation.css';
 
 function Budget() {
@@ -24,6 +25,7 @@ function Budget() {
     const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
     const [showKey, setShowKey] = useState(false);
     const [viewMode, setViewMode] = useState('guide'); // 'guide' or 'chart'
+    const [hiddenCategories, setHiddenCategories] = useState(['Housing']);
     const svgRef = useRef();
 
     // Save to localStorage whenever budgetData changes
@@ -36,11 +38,23 @@ function Budget() {
         return [...budgetData.defaultCategories, ...budgetData.customCategories];
     };
 
+    // Toggle category visibility
+    const toggleCategoryVisibility = (category) => {
+        setHiddenCategories(prev => {
+            if (prev.includes(category)) {
+                return prev.filter(cat => cat !== category);
+            } else {
+                return [...prev, category];
+            }
+        });
+    };
+
     // Convert number to Roman numeral
     const toRomanNumeral = (num) => {
         const romanNumerals = [
             { value: 10, numeral: 'X' },
             { value: 9, numeral: 'IX' },
+            { value: 8, numeral: 'IIX' },
             { value: 5, numeral: 'V' },
             { value: 4, numeral: 'IV' },
             { value: 1, numeral: 'I' }
@@ -102,15 +116,15 @@ function Budget() {
         }
     };
 
-    // Prepare chart data for D3 radar chart (excluding housing)
+    // Prepare chart data for D3 radar chart (excluding hidden categories)
     const prepareRadarData = () => {
         const budgetEntries = Object.entries(budgetData.budgets);
         
         const radarData = [];
         budgetEntries.forEach(([category, amount]) => {
             const numericAmount = parseFloat(amount) || 0;
-            // Exclude housing from the chart
-            if (numericAmount > 0 && category.toLowerCase() !== 'housing') {
+            // Exclude only hidden categories from the chart
+            if (numericAmount > 0 && !hiddenCategories.includes(category)) {
                 radarData.push({
                     category: category,
                     percentage: numericAmount,
@@ -120,6 +134,41 @@ function Budget() {
         });
 
         return radarData;
+    };
+
+    // Prepare full list for key (including Housing as first item and all other categories)
+    const prepareKeyData = () => {
+        const budgetEntries = Object.entries(budgetData.budgets);
+        
+        const keyData = [];
+        
+        // First, add Housing if it exists
+        const housingEntry = budgetEntries.find(([category]) => category.toLowerCase() === 'housing');
+        if (housingEntry) {
+            const numericAmount = parseFloat(housingEntry[1]) || 0;
+            if (numericAmount > 0) {
+                keyData.push({
+                    category: housingEntry[0],
+                    percentage: numericAmount,
+                    amount: numericAmount
+                });
+            }
+        }
+        
+        // Then add all other categories
+        budgetEntries.forEach(([category, amount]) => {
+            const numericAmount = parseFloat(amount) || 0;
+            // Exclude housing (already added)
+            if (numericAmount > 0 && category.toLowerCase() !== 'housing') {
+                keyData.push({
+                    category: category,
+                    percentage: numericAmount,
+                    amount: numericAmount
+                });
+            }
+        });
+
+        return keyData;
     };
 
     // D3 Radar Chart Effect
@@ -143,19 +192,23 @@ function Budget() {
             .append("g")
             .attr("transform", `translate(${width / 2 + margin.left}, ${height / 2 + margin.top})`);
 
-        // Prepare data - normalize to 0-100 scale
-        const maxPercentage = d3.max(data, d => d.percentage) || 100;
+        // Prepare data - calculate each category as percentage of total
+        const totalAmount = data.reduce((sum, d) => sum + d.amount, 0);
         const normalizedData = data.map(d => ({
             ...d,
-            normalizedValue: (d.percentage / maxPercentage) * 100
+            normalizedValue: totalAmount > 0 ? (d.amount / totalAmount) * 100 : 0
         }));
+
+        // Find the maximum percentage and round up to nearest 10
+        const maxPercentage = Math.max(...normalizedData.map(d => d.normalizedValue));
+        const maxScale = Math.ceil(maxPercentage / 10) * 10;
 
         const angleSlice = (Math.PI * 2) / normalizedData.length;
 
-        // Create radial scale
+        // Create radial scale - use dynamic max instead of 100
         const rScale = d3.scaleLinear()
             .range([0, radius])
-            .domain([0, 100]);
+            .domain([0, maxScale]);
 
         // Create the background circles
         const levels = 5;
@@ -171,7 +224,7 @@ function Budget() {
                 .style("stroke-opacity", 0.3)
                 .style("stroke-width", "1px");
 
-            // Add level labels
+            // Add level labels with dynamic scale
             if (level < levels) {
                 container.append("text")
                     .attr("x", 4)
@@ -179,7 +232,7 @@ function Budget() {
                     .attr("dy", "0.4em")
                     .style("font-size", "10px")
                     .style("fill", "#9ca3af")
-                    .text(`${(100 / levels) * level}%`);
+                    .text(`${(maxScale / levels) * level}%`);
             }
         }
 
@@ -293,7 +346,7 @@ function Budget() {
                 tooltip.style("opacity", 0);
             });
 
-    }, [budgetData, viewMode, formatCurrency]);
+    }, [budgetData, viewMode, formatCurrency, hiddenCategories]);
 
     // Get housing budget amount to display separately
     const getHousingBudget = () => {
@@ -301,6 +354,27 @@ function Budget() {
             category.toLowerCase() === 'housing'
         );
         return housingEntries.length > 0 ? parseFloat(housingEntries[0][1]) || 0 : 0;
+    };
+
+    // Calculate housing to income percentage
+    const getHousingPercentage = () => {
+        const income = budgetData.monthlyIncome || 0;
+        if (income === 0) return 0;
+        const housing = getHousingBudget();
+        return Math.min((housing / income) * 100, 100);
+    };
+
+    // Calculate total budget (all categories)
+    const getTotalBudget = () => {
+        return Object.entries(budgetData.budgets)
+            .reduce((sum, [, amount]) => sum + (parseFloat(amount) || 0), 0);
+    };
+
+    // Get category percentage of total budget (all categories)
+    const getCategoryPercentage = (amount) => {
+        const total = getTotalBudget();
+        if (total === 0) return 0;
+        return ((parseFloat(amount) || 0) / total) * 100;
     };
 
     // Handle category selection
@@ -595,14 +669,39 @@ Remember that strategic financial management is an ongoing process that requires
                             </button>
                         </div>
 
-                        <div className="view-all-section">
-                            <button 
-                                onClick={() => setShowViewAll(true)}
-                                className="view-all-btn"
-                            >
-                                View All
-                            </button>
-                        </div>
+                        {/* Category Key */}
+                        {viewMode === 'chart' && prepareKeyData().length > 0 && (
+                            <div className="budget-card-key">
+                                <h4 className="key-heading">Category Key</h4>
+
+                                {/* Column Headers */}
+                                <div className="key-column-headers">
+                                    <span className="header-view">View</span>
+                                    <span className="header-no">No.</span>
+                                    <span className="header-category">Category</span>
+                                    <span className="header-value">Value</span>
+                                    <span className="header-percentage">Percentage</span>
+                                </div>
+
+                                <div className="key-list-static">
+                                    {prepareKeyData().map((item, index) => (
+                                        <div key={index} className="key-item-static">
+                                            <span className="key-view-static">
+                                                <EyeIcon 
+                                                    visible={!hiddenCategories.includes(item.category)}
+                                                    onClick={() => toggleCategoryVisibility(item.category)}
+                                                    size={18}
+                                                />
+                                            </span>
+                                            <span className="key-numeral-static">{toRomanNumeral(index + 1)}</span>
+                                            <span className="key-category-static">{item.category}</span>
+                                            <span className="key-amount-static">{formatCurrency(item.amount)}</span>
+                                            <span className="key-percentage-static">{getCategoryPercentage(item.amount).toFixed(1)}%</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* User Guide with Carousel */}
@@ -660,44 +759,13 @@ Remember that strategic financial management is an ongoing process that requires
                         </>
                         ) : (
                         <>
-                    <div className="chart-header-with-button">
-                        <h3 className="chart-title">Budget Distribution</h3>
-                        <button 
-                            className="view-key-btn"
-                            onClick={() => setShowKey(!showKey)}
-                        >
-                            {showKey ? 'Hide Key' : 'View Key'}
-                        </button>
-                    </div>
+                    <h3 className="chart-title">Budget Distribution</h3>
                     
                     <div className="chart-content-wrapper">
                         <div className="chart-wrapper">
                             <svg ref={svgRef}></svg>
                         </div>
-                        
-                        {/* Key Popup */}
-                        {showKey && (
-                            <div className="category-key-popup">
-                                <h4>Category Key</h4>
-                                <div className="key-list">
-                                    {prepareRadarData().map((item, index) => (
-                                        <div key={index} className="key-item">
-                                            <span className="key-numeral">{toRomanNumeral(index + 1)}</span>
-                                            <span className="key-separator">—</span>
-                                            <span className="key-category">{item.category}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
-                        {/* Housing category display */}
-                        {getHousingBudget() > 0 && (
-                        <div className="housing-display">
-                            <p>Housing: {formatCurrency(getHousingBudget())}</p>
-                            <small>(Excluded from chart for better visualization)</small>
-                        </div>
-                    )}
                         </>
                         )}
                     </div>
