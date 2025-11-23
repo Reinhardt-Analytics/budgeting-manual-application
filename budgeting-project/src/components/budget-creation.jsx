@@ -1,11 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, RadialLinearScale } from 'chart.js';
-import { PolarArea } from 'react-chartjs-2';
+import { useState, useEffect, useRef } from 'react';
+import * as d3 from 'd3';
 import budgetDataTemplate from '../data/budgetData.json';
 import './budget-creation.css';
-
-// Register Chart.js components
-ChartJS.register(ArcElement, Tooltip, Legend, RadialLinearScale);
 
 function Budget() {
     // Initialize state with localStorage persistence
@@ -19,14 +15,16 @@ function Budget() {
         }
     });
 
-    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('');``
     const [budgetAmount, setBudgetAmount] = useState('');
     const [newCategoryName, setNewCategoryName] = useState('');
     const [showViewAll, setShowViewAll] = useState(false);
     const [showAddCategory, setShowAddCategory] = useState(false);
     const [showLimitWarning, setShowLimitWarning] = useState(false);
     const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
-    const [showChart, setShowChart] = useState(false);
+    const [showKey, setShowKey] = useState(false);
+    const [viewMode, setViewMode] = useState('guide'); // 'guide' or 'chart'
+    const svgRef = useRef();
 
     // Save to localStorage whenever budgetData changes
     useEffect(() => {
@@ -36,6 +34,25 @@ function Budget() {
     // Get all categories (default + custom)
     const getAllCategories = () => {
         return [...budgetData.defaultCategories, ...budgetData.customCategories];
+    };
+
+    // Convert number to Roman numeral
+    const toRomanNumeral = (num) => {
+        const romanNumerals = [
+            { value: 10, numeral: 'X' },
+            { value: 9, numeral: 'IX' },
+            { value: 5, numeral: 'V' },
+            { value: 4, numeral: 'IV' },
+            { value: 1, numeral: 'I' }
+        ];
+        let result = '';
+        for (let i = 0; i < romanNumerals.length; i++) {
+            while (num >= romanNumerals[i].value) {
+                result += romanNumerals[i].numeral;
+                num -= romanNumerals[i].value;
+            }
+        }
+        return result;
     };
 
     // Format currency with commas
@@ -85,46 +102,198 @@ function Budget() {
         }
     };
 
-    // Prepare chart data for polar area chart (excluding housing)
-    const getChartData = () => {
+    // Prepare chart data for D3 radar chart (excluding housing)
+    const prepareRadarData = () => {
         const budgetEntries = Object.entries(budgetData.budgets);
         
-        if (budgetEntries.length === 0) {
-            return {
-                labels: [],
-                datasets: [{
-                    data: [],
-                    backgroundColor: [],
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            };
-        }
-
-        const labels = [];
-        const data = [];
-        const backgroundColor = [];
-
+        const radarData = [];
         budgetEntries.forEach(([category, amount]) => {
             const numericAmount = parseFloat(amount) || 0;
             // Exclude housing from the chart
             if (numericAmount > 0 && category.toLowerCase() !== 'housing') {
-                labels.push(category);
-                data.push(numericAmount);
-                backgroundColor.push('#88C0FC');
+                radarData.push({
+                    category: category,
+                    percentage: numericAmount,
+                    amount: numericAmount
+                });
             }
         });
 
-        return {
-            labels,
-            datasets: [{
-                data,
-                backgroundColor,
-                borderWidth: 2,
-                borderColor: '#ffffff'
-            }]
-        };
+        return radarData;
     };
+
+    // D3 Radar Chart Effect
+    useEffect(() => {
+        if (viewMode !== 'chart') return;
+        
+        const data = prepareRadarData();
+        if (!data || data.length === 0) return;
+
+        const svg = d3.select(svgRef.current);
+        svg.selectAll("*").remove();
+
+        const margin = { top: 50, right: 50, bottom: 50, left: 50 };
+        const width = 400 - margin.left - margin.right;
+        const height = 400 - margin.top - margin.bottom;
+        const radius = Math.min(width, height) / 2;
+
+        const container = svg
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${width / 2 + margin.left}, ${height / 2 + margin.top})`);
+
+        // Prepare data - normalize to 0-100 scale
+        const maxPercentage = d3.max(data, d => d.percentage) || 100;
+        const normalizedData = data.map(d => ({
+            ...d,
+            normalizedValue: (d.percentage / maxPercentage) * 100
+        }));
+
+        const angleSlice = (Math.PI * 2) / normalizedData.length;
+
+        // Create radial scale
+        const rScale = d3.scaleLinear()
+            .range([0, radius])
+            .domain([0, 100]);
+
+        // Create the background circles
+        const levels = 5;
+        for (let level = 1; level <= levels; level++) {
+            const levelRadius = (radius / levels) * level;
+            
+            container.append("circle")
+                .attr("cx", 0)
+                .attr("cy", 0)
+                .attr("r", levelRadius)
+                .style("fill", "none")
+                .style("stroke", "rgba(128, 128, 128, 0.3)")
+                .style("stroke-opacity", 0.3)
+                .style("stroke-width", "1px");
+
+            // Add level labels
+            if (level < levels) {
+                container.append("text")
+                    .attr("x", 4)
+                    .attr("y", -levelRadius)
+                    .attr("dy", "0.4em")
+                    .style("font-size", "10px")
+                    .style("fill", "#9ca3af")
+                    .text(`${(100 / levels) * level}%`);
+            }
+        }
+
+        // Create the radial lines
+        normalizedData.forEach((d, i) => {
+            container.append("line")
+                .attr("x1", 0)
+                .attr("y1", 0)
+                .attr("x2", radius * Math.cos(angleSlice * i - Math.PI / 2))
+                .attr("y2", radius * Math.sin(angleSlice * i - Math.PI / 2))
+                .style("stroke", "rgba(128, 128, 128, 0.3)")
+                .style("stroke-opacity", 0.3)
+                .style("stroke-width", "1px");
+        });
+
+        // Create the radar chart area
+        const radarLine = d3.lineRadial()
+            .angle((d, i) => angleSlice * i)
+            .radius(d => rScale(d.normalizedValue))
+            .curve(d3.curveLinearClosed);
+
+        // Add the area fill
+        container.append("path")
+            .datum(normalizedData)
+            .attr("d", radarLine)
+            .style("fill", "#394353")
+            .style("fill-opacity", 0.2)
+            .style("stroke", "#394353")
+            .style("stroke-width", "2px");
+
+        // Add data points
+        container.selectAll(".radarCircle")
+            .data(normalizedData)
+            .enter().append("circle")
+            .attr("class", "radarCircle")
+            .attr("r", 4)
+            .attr("cx", (d, i) => rScale(d.normalizedValue) * Math.cos(angleSlice * i - Math.PI / 2))
+            .attr("cy", (d, i) => rScale(d.normalizedValue) * Math.sin(angleSlice * i - Math.PI / 2))
+            .style("fill", "#394353")
+            .style("stroke", "white")
+            .style("stroke-width", "2px");
+
+        // Add category labels with Roman numerals
+        container.selectAll(".radarLabel")
+            .data(normalizedData)
+            .enter().append("text")
+            .attr("class", "radarLabel")
+            .attr("x", (d, i) => (radius + 20) * Math.cos(angleSlice * i - Math.PI / 2))
+            .attr("y", (d, i) => (radius + 20) * Math.sin(angleSlice * i - Math.PI / 2))
+            .attr("dy", "0.35em")
+            .style("font-size", "12px")
+            .style("font-weight", "600")
+            .style("fill", "var(--text-color)")
+            .style("text-anchor", (d, i) => {
+                const angle = (angleSlice * i) * (180 / Math.PI);
+                return angle > 90 && angle < 270 ? "end" : "start";
+            })
+            .text((d, i) => toRomanNumeral(i + 1));
+
+        // Add percentage labels on hover
+        const tooltip = container.append("g")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+        tooltip.append("rect")
+            .attr("width", 80)
+            .attr("height", 30)
+            .attr("x", -40)
+            .attr("y", -35)
+            .style("fill", "var(--card-background)")
+            .style("stroke", "var(--border-color)")
+            .style("stroke-width", "1px")
+            .style("rx", "4");
+
+        const tooltipText = tooltip.append("text")
+            .attr("text-anchor", "middle")
+            .attr("dy", "-0.5em")
+            .style("font-size", "11px")
+            .style("font-weight", "600")
+            .style("fill", "var(--text-color)");
+
+        const tooltipAmount = tooltip.append("text")
+            .attr("text-anchor", "middle")
+            .attr("dy", "0.8em")
+            .style("font-size", "10px")
+            .style("fill", "#9ca3af");
+
+        // Add hover events to data points
+        container.selectAll(".radarCircle")
+            .on("mouseover", function(event, d) {
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr("r", 6)
+                    .style("fill", "#2d3441");
+
+                tooltip
+                    .style("opacity", 1)
+                    .attr("transform", `translate(${d3.select(this).attr("cx")}, ${d3.select(this).attr("cy")})`);
+
+                tooltipText.text(`${d.percentage.toFixed(1)}%`);
+                tooltipAmount.text(`${formatCurrency(d.amount)}`);
+            })
+            .on("mouseout", function() {
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr("r", 4)
+                    .style("fill", "#394353");
+
+                tooltip.style("opacity", 0);
+            });
+
+    }, [budgetData, viewMode, formatCurrency]);
 
     // Get housing budget amount to display separately
     const getHousingBudget = () => {
@@ -132,65 +301,6 @@ function Budget() {
             category.toLowerCase() === 'housing'
         );
         return housingEntries.length > 0 ? parseFloat(housingEntries[0][1]) || 0 : 0;
-    };
-
-    // Chart options with animations
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: {
-            duration: 800,
-            easing: 'easeInOutQuart'
-        },
-        transitions: {
-            active: {
-                animation: {
-                    duration: 400
-                }
-            }
-        },
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    padding: 20,
-                    font: {
-                        size: 12
-                    }
-                }
-            },
-            tooltip: {
-                callbacks: {
-                    label: (context) => {
-                        const label = context.label || '';
-                        const value = context.parsed || 0;
-                        const budgetAmount = budgetData.budgets[label] || 0;
-                        return `${label}: ${value.toFixed(1)}% (${budgetData.currencyMode === 'dollars' ? formatCurrency(budgetAmount) : formatPercentage(budgetAmount)})`;
-                    }
-                }
-            }
-        },
-        scales: {
-            r: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 20, // This will create exactly 5 rings (0, 20, 40, 60, 80, 100)
-                    max: 100,
-                    display: true
-                },
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                },
-                angleLines: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                },
-                pointLabels: {
-                    font: {
-                        size: 10
-                    }
-                }
-            }
-        }
     };
 
     // Handle category selection
@@ -341,38 +451,50 @@ function Budget() {
     // Carousel content
     const carouselContent = [
         {
-            title: "Budget Foundation & Purpose",
-            content: `Your budget must serve as a comprehensive tool to project necessary resources, measure current financial performance, and detect significant changes in your financial circumstances. Establish realistic and attainable budget targets based on thorough analysis of your financial needs and goals.
+            title: "Financial Planning Fundamentals",
+            content: `Effective budgeting begins with establishing a clear financial foundation that serves as your roadmap to financial success. Your budget should function as a comprehensive tool that projects necessary resources, measures current financial performance, and detects significant changes in your financial circumstances.
 
-Budget planning requires a clear identification of your financial purpose, comprehensive assessment of needs, and a strategic plan to increase resources or modify objectives when current resources fall short of meeting your goals.
+Start by identifying your core financial objectives and aligning them with realistic, attainable targets. This requires thorough analysis of your income sources, fixed expenses, variable costs, and discretionary spending patterns. Understanding these elements allows you to create a budget that reflects your actual financial situation rather than idealistic projections.
 
-A thorough analysis must include clear identification of your budget's purpose in relation to your financial mission, goals, and objectives. Conduct comprehensive assessment of your financial needs and develop a plan to increase resources or modify goals if current resources fall short.
+Consider your budget as a living document that evolves with your circumstances. Regular assessment ensures your financial plan remains relevant and effective. Establish clear priorities for your spending categories, distinguishing between needs and wants while maintaining flexibility for unexpected opportunities or challenges.
 
-Regular monitoring ensures your budget serves as an effective measurement tool for tracking progress toward your financial objectives while maintaining flexibility to adapt to changing circumstances.`
+Successful budgeting also involves setting aside emergency funds and planning for both short-term and long-term financial goals. This comprehensive approach creates a stable foundation that supports your financial well-being and provides security against unforeseen circumstances.
+
+Remember that budgeting is not about restriction but about making informed choices that align with your values and objectives. When your spending reflects your priorities, you'll find greater satisfaction and success in reaching your financial goals.`
         },
         {
-            title: "Monitoring & Performance Management",
-            content: `Compare actual financial results to your budget regularly to detect changes in circumstances, discover transaction errors, and measure financial performance. When actual results vary significantly from your budget, determine the cause, evaluate the activity, and take corrective action.
+            title: "Performance Monitoring & Control",
+            content: `Regular monitoring transforms your budget from a static plan into a dynamic financial management tool. Compare actual results to your budget consistently to identify trends, detect errors, and measure progress toward your financial objectives.
 
-Operate within your budget constraints. Expenditures that exceed budget require justification and a formal plan to eliminate deficits. Ensure anticipated benefits are greater than costs for all planned activities, and provide adequate safeguards to protect against unauthorized use of financial resources.
+Establish a routine for reviewing your financial performance, whether weekly, bi-weekly, or monthly. During these reviews, analyze variances between planned and actual spending, investigating significant differences to understand their causes. This practice helps you identify spending patterns and make informed adjustments to stay on track.
 
-Monthly financial reports must be appropriate and accurate, providing clear identification of all revenue sources and expenditures. Include budget versus actual comparisons and highlight exception items that require immediate attention.
+When expenditures exceed budget allocations, take immediate corrective action. This might involve reducing spending in other categories, finding additional income sources, or adjusting future budget periods. The key is addressing issues promptly before they compound into larger financial problems.
 
-Implement control procedures to address recurring reporting exceptions and ensure timely corrective action before issues compound into larger financial problems.`
+Implement control procedures that prevent unauthorized or excessive spending. This could include setting spending limits on credit cards, requiring approval for large purchases, or using separate accounts for different budget categories. These safeguards help maintain financial discipline and protect your resources.
+
+Create comprehensive financial reports that provide clear visibility into your income and expenses. Include budget-versus-actual comparisons and highlight areas requiring attention. This documentation serves as valuable input for future budget planning and helps identify opportunities for improvement.
+
+Develop accountability measures that keep you motivated and on track. This might involve sharing your progress with a trusted advisor, using financial tracking apps, or setting up automatic alerts when spending approaches budget limits.`
         },
         {
-            title: "Strategic Financial Analysis",
-            content: `Before significantly adding, changing, or eliminating budget categories, conduct thorough cost-benefit analysis. Include quantified statements of benefits, comprehensive assessment of direct and indirect costs, identification of funding sources, and assessment of all financial risks.
+            title: "Strategic Financial Decision Making",
+            content: `Strategic financial analysis elevates your budgeting from simple expense tracking to comprehensive financial planning. Before making significant changes to your budget categories or financial commitments, conduct thorough cost-benefit analysis to ensure optimal resource allocation.
 
-Maintain detailed documentation of budget decisions, track variances from planned allocations, and implement corrective measures when necessary. Regular re-evaluation of assumptions and financial projections ensures your budget reflects current economic conditions and personal circumstances.
+Evaluate all financial decisions through the lens of opportunity cost. When considering new expenses or investments, assess not just their direct costs but also what opportunities you might forgo. This analysis helps prioritize spending and ensures resources flow toward activities that provide the greatest value.
 
-Management must weigh costs and risks before deciding to significantly modify financial activities. Analysis should include clear statements of purpose, quantified benefits, thorough cost assessments, and identification of potential problems and underlying assumptions.
+Maintain detailed documentation of your financial decisions and their outcomes. Track how budget changes affect your overall financial health and document lessons learned for future reference. This historical perspective improves your decision-making capabilities over time.
 
-Documentation of corrective actions must include why variances occurred, how budgets were revised, what accounts were affected, when actions were taken, and who authorized the changes.`
+Regularly reassess your financial assumptions and projections to ensure they remain valid. Economic conditions, personal circumstances, and life priorities change, requiring corresponding adjustments to your financial strategy. Stay flexible and willing to modify your approach when circumstances warrant.
+
+Consider the long-term implications of your financial choices. Decisions made today can have lasting effects on your financial security and ability to achieve future goals. Balance immediate needs with long-term objectives to create sustainable financial success.
+
+When significant variances occur, conduct root cause analysis to understand underlying factors. Document corrective actions taken, including which accounts were affected, when changes were implemented, and who authorized the modifications. This systematic approach ensures continuous improvement in your financial management practices.
+
+Remember that strategic financial management is an ongoing process that requires patience, discipline, and regular adjustment. By maintaining focus on your long-term objectives while remaining flexible in your tactics, you'll build a robust financial foundation that supports your aspirations.`
         }
     ];
 
-    // Carousel navigation
+    // Carousel navigation - cycles through all cards
     const nextSlide = () => {
         setCurrentCarouselIndex((prev) => (prev + 1) % carouselContent.length);
     };
@@ -390,7 +512,7 @@ Documentation of corrective actions must include why variances occurred, how bud
         <>
             <div className="budget-background"></div>
             <div className="budget-page-container">
-                <div className="budget-content-section">
+                <div className="budget-content-centered">
                     {/* Configure Budget Card */}
                     <div className="budget-card">
                         <div className="card-header">
@@ -484,28 +606,42 @@ Documentation of corrective actions must include why variances occurred, how bud
                     </div>
 
                     {/* User Guide with Carousel */}
-                    <div className={`budget-user-guide ${showChart ? 'hide' : 'show'}`}>
+                    <div className="budget-user-guide">
                         <h3 className="guide-section-heading">Financial Management Principles</h3>
+                        <div className="view-toggle-container">
+                            <button 
+                                className={`toggle-btn ${viewMode === 'guide' ? 'active' : ''}`}
+                                onClick={() => setViewMode('guide')}
+                            >
+                                Guide View
+                            </button>
+                            <button 
+                                className={`toggle-btn ${viewMode === 'chart' ? 'active' : ''}`}
+                                onClick={() => setViewMode('chart')}
+                            >
+                                Chart View
+                            </button>
+                        </div>
+                        {viewMode === 'guide' ? (
+                        <>
                         <div className="guide-carousel-container">
                             <div className="carousel-nav-buttons">
                                 <button 
                                     className="carousel-nav-btn" 
                                     onClick={prevSlide}
-                                    disabled={currentCarouselIndex === 0}
                                 >
                                     ‹
                                 </button>
                                 <button 
                                     className="carousel-nav-btn" 
                                     onClick={nextSlide}
-                                    disabled={currentCarouselIndex === carouselContent.length - 1}
                                 >
                                     ›
                                 </button>
                             </div>
                             <div 
                                 className="guide-carousel-wrapper" 
-                                style={{ transform: `translateX(-${currentCarouselIndex * 33.33}%)` }}
+                                style={{ transform: `translateX(-${currentCarouselIndex * 100}%)` }}
                             >
                                 {carouselContent.map((item, index) => (
                                     <div key={index} className="guide-section">
@@ -521,37 +657,49 @@ Documentation of corrective actions must include why variances occurred, how bud
                         <div className="carousel-indicator">
                             {currentCarouselIndex + 1} of {carouselContent.length}
                         </div>
+                        </>
+                        ) : (
+                        <>
+                    <div className="chart-header-with-button">
+                        <h3 className="chart-title">Budget Distribution</h3>
                         <button 
-                            className={`view-budget-btn ${hasBudgetData() ? 'enabled' : 'disabled'}`}
-                            onClick={() => setShowChart(true)}
-                            disabled={!hasBudgetData()}
+                            className="view-key-btn"
+                            onClick={() => setShowKey(!showKey)}
                         >
-                            View Budget
+                            {showKey ? 'Hide Key' : 'View Key'}
                         </button>
                     </div>
-
-                    {/* Chart Container */}
-                    <div className={`budget-chart-container ${showChart ? 'show' : 'hide'}`}>
-                        <h3 className="chart-title">Budget Distribution</h3>
+                    
+                    <div className="chart-content-wrapper">
                         <div className="chart-wrapper">
-                            <PolarArea 
-                                data={getChartData()} 
-                                options={chartOptions}
-                            />
+                            <svg ref={svgRef}></svg>
                         </div>
-                        {/* Housing category display */}
-                        {getHousingBudget() > 0 && (
-                            <div className="housing-display">
-                                <p>Housing: {formatCurrency(getHousingBudget())}</p>
-                                <small>(Excluded from chart for better visualization)</small>
+                        
+                        {/* Key Popup */}
+                        {showKey && (
+                            <div className="category-key-popup">
+                                <h4>Category Key</h4>
+                                <div className="key-list">
+                                    {prepareRadarData().map((item, index) => (
+                                        <div key={index} className="key-item">
+                                            <span className="key-numeral">{toRomanNumeral(index + 1)}</span>
+                                            <span className="key-separator">—</span>
+                                            <span className="key-category">{item.category}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
-                        <button 
-                            className="back-to-guide-btn"
-                            onClick={() => setShowChart(false)}
-                        >
-                            Back to Guide
-                        </button>
+                    </div>
+                        {/* Housing category display */}
+                        {getHousingBudget() > 0 && (
+                        <div className="housing-display">
+                            <p>Housing: {formatCurrency(getHousingBudget())}</p>
+                            <small>(Excluded from chart for better visualization)</small>
+                        </div>
+                    )}
+                        </>
+                        )}
                     </div>
                 </div>
             </div>

@@ -10,7 +10,7 @@
     width: 100%;
     max-width: 600px;
     height: auto;
-    min-height: 500px;
+    min-height: 600px;
     display: flex;
     flex-direction: column;
     background: var(--card-background);
@@ -18,6 +18,7 @@
     padding: 30px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
+    margin-top: 40px;
 }
 
 .radar-chart-container .chart-title {
@@ -33,14 +34,13 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 350px;
-    margin-bottom: 15px;
+    min-height: 520px;
 }
 
 .chart-content {
     position: relative;
     width: 450px;
-    height: 450px;
+    height: 550px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -56,14 +56,22 @@
     background: linear-gradient(135deg, #6b7280, #4b5563);
     color: #ffffff;
     border: none;
-    padding: 10px 20px;
+    padding: 0.75rem 1.5rem;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+
+
+.randomize-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--header-border);
 }
 
 [data-theme="dark"] .randomize-btn {
@@ -76,18 +84,15 @@
     color: #ffffff;
 }
 
-.randomize-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
 .randomize-btn:active {
     transform: translateY(0);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+
+
 .chart-subtitle {
-    margin: -10px 0 15px 0;
+    margin: -10px 0 0 0;
     font-size: 14px;
     color: var(--secondary-text-color);
     text-align: center;
@@ -108,39 +113,45 @@
     font-size: 10px;
     text-align: center;
     min-width: 40px;
+    padding: 0;
+    margin: 0;
 }
 
-/* Position category values directly below category names on the radar chart */
-.category-0 { /* Housing - top */
-    top: 45px;
+/* Position category values close to chart edges */
+.category-0 { /* Housing - top, show value above label */
+    top: 0.5rem;
     left: 50%;
     transform: translateX(-50%);
 }
 
-.category-1 { /* Utilities - top right */
-    top: 25%;
-    right: 5px;
+.category-1 { /* Utilities - top right, show value above label */
+    top: 2.5rem;
+    left: 50%;
+    transform: translateX(11rem);
 }
 
-.category-2 { /* Transport - bottom right */
-    bottom: 25%;
-    right: 5px;
+.category-2 { /* Transport - bottom right, show value below label */
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(11rem);
 }
 
-.category-3 { /* Medical - bottom */
-    bottom: 45px;
+.category-3 { /* Medical - bottom, show value below label */
+    bottom: 0.5rem;
     left: 50%;
     transform: translateX(-50%);
 }
 
-.category-4 { /* Groceries - bottom left */
-    bottom: 25%;
-    left: 5px;
+.category-4 { /* Groceries - bottom left, show value below label */
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-11rem);
 }
 
-.category-5 { /* Savings - top left */
-    top: 25%;
-    left: 5px;
+.category-5 { /* Savings - top left, show value above label */
+    top: 2.5rem;
+    left: 50%;
+    transform: translateX(-11rem);
 }
 
 .budget-value, .transaction-value {

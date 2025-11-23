@@ -34,6 +34,8 @@ const HomeRadarChart = () => {
         return currentTheme === 'dark' ? '#f3f4f6' : '#374151';
     };
     
+
+    
     // Listen for theme changes
     useEffect(() => {
         const observer = new MutationObserver((mutations) => {
@@ -53,24 +55,28 @@ const HomeRadarChart = () => {
         return () => observer.disconnect();
     }, []);
     
+
+    
+
+    
     // Budget dataset ranges (percentage of total budget)
     const budgetRanges = {
-        'Housing': [28, 38],
-        'Utilities': [8, 18],
-        'Transport': [4, 14],
-        'Medical': [6, 18],
-        'Groceries': [8, 22],
-        'Savings': [12, 34]
+        'Housing': [22, 36],
+        'Utilities': [10, 18],
+        'Transport': [6, 16],
+        'Medical': [6, 22],
+        'Groceries': [12, 24],
+        'Savings': [14, 26]
     };
     
     // Actual spending dataset ranges (percentage of category budget - can exceed 100%)
     const spendingRanges = {
-        'Housing': [80, 120],
-        'Utilities': [80, 140],
+        'Housing': [60, 140],
+        'Utilities': [60, 140],
         'Transport': [60, 140],
-        'Medical': [40, 180],
+        'Medical': [60, 140],
         'Groceries': [60, 140],
-        'Savings': [60, 120]
+        'Savings': [60, 140]
     };
 
     // Function to generate random data within ranges that adds up to 100%
@@ -217,7 +223,11 @@ const HomeRadarChart = () => {
                 }
             ]
         }));
+        
+
     };
+    
+
 
     // Create chart options that dynamically get theme colors
     const getChartOptions = () => {
@@ -336,6 +346,16 @@ const HomeRadarChart = () => {
             
             {/* Controls outside the card */}
             <div className="external-controls">
+                <div className="chart-legend">
+                    <div className="legend-item">
+                        <span className="legend-color" style={{backgroundColor: 'rgba(54, 162, 235, 0.7)'}}></span>
+                        <span>Budget Distribution (%)</span>
+                    </div>
+                    <div className="legend-item">
+                        <span className="legend-color" style={{backgroundColor: 'rgba(255, 99, 132, 0.7)'}}></span>
+                        <span>Transaction vs. Budget (%)</span>
+                    </div>
+                </div>
                 <div className="income-control">
                     <div className="income-input-wrapper">
                         <span className="income-label">Set Income:</span>
@@ -355,16 +375,6 @@ const HomeRadarChart = () => {
                     <button onClick={randomizeData} className="randomize-btn">
                         Randomize Data
                     </button>
-                </div>
-                <div className="chart-legend">
-                    <div className="legend-item">
-                        <span className="legend-color" style={{backgroundColor: 'rgba(54, 162, 235, 0.7)'}}></span>
-                        <span>Budget Distribution (%)</span>
-                    </div>
-                    <div className="legend-item">
-                        <span className="legend-color" style={{backgroundColor: 'rgba(255, 99, 132, 0.7)'}}></span>
-                        <span>Transaction vs. Budget (%)</span>
-                    </div>
                 </div>
             </div>
         </div>
