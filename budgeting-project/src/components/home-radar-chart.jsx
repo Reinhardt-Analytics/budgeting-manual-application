@@ -9,6 +9,7 @@ import {
     Legend,
 } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
+import { EyeIcon } from './EyeIcon';
 import './home-radar-chart.css';
 
 ChartJS.register(
@@ -28,6 +29,40 @@ const HomeRadarChart = () => {
     const [currentTheme, setCurrentTheme] = useState(() => 
         document.body.getAttribute('data-theme') || 'light'
     );
+    
+    // State to track hidden categories
+    const [hiddenCategories, setHiddenCategories] = useState([]);
+    
+    // Convert number to Roman numeral
+    const toRomanNumeral = (num) => {
+        const romanNumerals = [
+            { value: 10, numeral: 'X' },
+            { value: 9, numeral: 'IX' },
+            { value: 8, numeral: 'IIX' },
+            { value: 5, numeral: 'V' },
+            { value: 4, numeral: 'IV' },
+            { value: 1, numeral: 'I' }
+        ];
+        let result = '';
+        for (let i = 0; i < romanNumerals.length; i++) {
+            while (num >= romanNumerals[i].value) {
+                result += romanNumerals[i].numeral;
+                num -= romanNumerals[i].value;
+            }
+        }
+        return result;
+    };
+    
+    // Toggle category visibility
+    const toggleCategoryVisibility = (category) => {
+        setHiddenCategories(prev => {
+            if (prev.includes(category)) {
+                return prev.filter(cat => cat !== category);
+            } else {
+                return [...prev, category];
+            }
+        });
+    };
     
     // Function to get current theme text color
     const getThemeTextColor = () => {
@@ -172,7 +207,7 @@ const HomeRadarChart = () => {
     const [chartData, setChartData] = useState(() => {
         const initialData = generateRandomData();
         return {
-            labels: categories,
+            labels: categories.map((_, index) => toRomanNumeral(index + 1)),
             datasets: [
                 {
                     label: 'Budget Categories (% of Total Budget)',
@@ -199,6 +234,15 @@ const HomeRadarChart = () => {
             ]
         };
     });
+    
+    // Store full data for key display
+    const [fullData, setFullData] = useState(() => {
+        const initialData = generateRandomData();
+        return {
+            budgetData: initialData.budgetData,
+            transactionPercentages: initialData.transactionPercentages
+        };
+    });
 
     // Function to randomize the chart data
     const randomizeData = () => {
@@ -210,8 +254,15 @@ const HomeRadarChart = () => {
         console.log('Spending percentages:', newData.spendingPercentages);
         console.log('Transaction percentages:', newData.transactionPercentages);
         
+        // Store full data
+        setFullData({
+            budgetData: newData.budgetData,
+            transactionPercentages: newData.transactionPercentages
+        });
+        
         setChartData(prevData => ({
             ...prevData,
+            labels: categories.map((_, index) => toRomanNumeral(index + 1)),
             datasets: [
                 {
                     ...prevData.datasets[0],
@@ -227,11 +278,39 @@ const HomeRadarChart = () => {
 
     };
     
+    // Update chart data when hidden categories change
+    useEffect(() => {
+        setChartData(prevData => {
+            const visibleIndices = categories
+                .map((cat, index) => !hiddenCategories.includes(cat) ? index : -1)
+                .filter(index => index !== -1);
+            
+            return {
+                labels: visibleIndices.map(index => toRomanNumeral(index + 1)),
+                datasets: [
+                    {
+                        ...prevData.datasets[0],
+                        data: visibleIndices.map(index => fullData.budgetData[index])
+                    },
+                    {
+                        ...prevData.datasets[1],
+                        data: visibleIndices.map(index => fullData.transactionPercentages[index])
+                    }
+                ]
+            };
+        });
+    }, [hiddenCategories, fullData]);
+    
 
 
     // Create chart options that dynamically get theme colors
     const getChartOptions = () => {
         const currentThemeColor = getThemeTextColor();
+        // Filter labels for visible categories only
+        const visibleLabels = categories
+            .map((cat, index) => !hiddenCategories.includes(cat) ? toRomanNumeral(index + 1) : null)
+            .filter(label => label !== null);
+        
         return {
             responsive: true,
             maintainAspectRatio: false,
@@ -314,24 +393,12 @@ const HomeRadarChart = () => {
             <div className="radar-chart-container">
                 <h3 className="chart-title">Budget vs Spending Overview</h3>
                 <p className="chart-subtitle">Sample Data</p>
+                   <p className="chart-tooltip" style={{marginTop: '12px'}}>
+                       Your dashboard will look like this once you enter your information. Categories and details are fully customizable with Saiel.
+                   </p>
                 <div className="chart-wrapper-centered">
                     <div className="chart-content">
                         <Radar data={chartData} options={getChartOptions()} />
-                        {/* Display values under category names */}
-                        <div className="category-values">
-                            {categories.map((category, index) => (
-                                <div key={category} className={`category-value category-${index}`}>
-                                    <div className="budget-value">
-                                        <span className="value-color-box budget-color"></span>
-                                        <span className="value-text">{Math.round(chartData.datasets[0].data[index])}%</span>
-                                    </div>
-                                    <div className="transaction-value">
-                                        <span className="value-color-box transaction-color"></span>
-                                        <span className="value-text">{Math.round(chartData.datasets[1].data[index])}%</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
                     </div>
                 </div>
                 <div className="financial-summary-inside">
@@ -340,6 +407,38 @@ const HomeRadarChart = () => {
                     </div>
                     <div className="remaining-display">
                         <span>Remaining: {formatCurrency(calculateTotalSpent())}</span>
+                    </div>
+                </div>
+                
+                {/* Category Key */}
+                <div className="budget-card-key">
+                    <h4 className="key-heading">Category Key</h4>
+
+                    {/* Column Headers */}
+                    <div className="key-column-headers">
+                        <span className="header-view">View</span>
+                        <span className="header-no">No.</span>
+                        <span className="header-category">Category</span>
+                        <span className="header-budget">Budget</span>
+                        <span className="header-transaction">Transaction</span>
+                    </div>
+
+                    <div className="key-list-static">
+                        {categories.map((category, index) => (
+                            <div key={index} className="key-item-static">
+                                <span className="key-view-static">
+                                    <EyeIcon 
+                                        visible={!hiddenCategories.includes(category)}
+                                        onClick={() => toggleCategoryVisibility(category)}
+                                        size={18}
+                                    />
+                                </span>
+                                <span className="key-numeral-static">{toRomanNumeral(index + 1)}</span>
+                                <span className="key-category-static">{category}</span>
+                                <span className="key-budget-static">{fullData.budgetData[index].toFixed(1)}%</span>
+                                <span className="key-transaction-static">{fullData.transactionPercentages[index].toFixed(1)}%</span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>

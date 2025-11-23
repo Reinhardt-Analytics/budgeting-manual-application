@@ -8,9 +8,9 @@
 
 .radar-chart-container {
     width: 100%;
-    max-width: 600px;
+    max-width: 700px;
     height: auto;
-    min-height: 600px;
+    min-height: 800px;
     display: flex;
     flex-direction: column;
     background: var(--card-background);
@@ -358,4 +358,136 @@
     .placeholder-icon {
         font-size: 36px;
     }
+}
+
+/* Budget Card Key */
+.budget-card-key {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.key-heading {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-color);
+    text-align: center;
+}
+
+.key-column-headers {
+    display: grid;
+    grid-template-columns: 50px 50px 1fr auto auto;
+    gap: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-color);
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 10px;
+}
+
+.header-view {
+    text-align: center;
+    min-width: 50px;
+}
+
+.header-no {
+    text-align: left;
+}
+
+.header-category {
+    text-align: left;
+}
+
+.header-budget {
+    text-align: right;
+    padding-right: 10px;
+    min-width: 70px;
+}
+
+.header-transaction {
+    text-align: right;
+    min-width: 90px;
+}
+
+.key-list-static {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.key-item-static {
+    display: grid;
+    grid-template-columns: 50px 50px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-color);
+    padding: 8px 12px;
+    background-color: var(--section-background, rgba(0, 0, 0, 0.02));
+    border-radius: 4px;
+}
+
+.key-numeral-static {
+    font-weight: 700;
+    color: #394353;
+    text-align: left;
+    font-size: 14px;
+}
+
+.key-category-static {
+    font-weight: 700;
+    text-align: left;
+}
+
+.key-budget-static {
+    font-weight: 600;
+    color: var(--text-color);
+    text-align: right;
+    padding-right: 10px;
+    min-width: 70px;
+}
+
+.key-transaction-static {
+    font-weight: 600;
+    color: #394353;
+    text-align: right;
+    min-width: 90px;
+}
+
+.key-view-static {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+}
+
+.eye-icon {
+    color: #394353;
+    transition: color 0.2s ease, opacity 0.2s ease;
+    cursor: pointer;
+}
+
+.eye-icon:hover {
+    color: #2d3441;
+    opacity: 0.8;
+}
+
+[data-theme="dark"] .key-item-static {
+    background-color: rgba(75, 85, 99, 0.3);
+}
+
+[data-theme="dark"] .key-numeral-static,
+[data-theme="dark"] .key-transaction-static {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .eye-icon {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .eye-icon:hover {
+    color: #f3f4f6;
 }
