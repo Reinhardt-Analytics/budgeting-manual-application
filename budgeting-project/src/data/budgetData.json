@@ -1,15 +1,21 @@
 {
   "defaultCategories": [
     "Housing",
-    "Transportation", 
     "Utilities",
-    "Insurance",
-    "Saving and Investments",
     "Groceries",
-    "Health and Wellness",
-    "Dining Out",
-    "Gifts and Charity",
-    "Entertainment and Travel"
+    "Dining",
+    "Transport",
+    "Insurance",
+    "Health",
+    "Savings",
+    "Investing",
+    "Debt",
+    "Personal",
+    "Leisure",
+    "Education",
+    "Giving",
+    "Pets",
+    "Miscellaneous"
   ],
   "budgets": {},
   "customCategories": [],
