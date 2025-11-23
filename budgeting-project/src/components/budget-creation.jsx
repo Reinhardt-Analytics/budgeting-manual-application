@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import budgetDataTemplate from '../data/budgetData.json';
+import { EyeIcon } from './EyeIcon';
 import './budget-creation.css';
 
 function Budget() {
@@ -24,6 +25,8 @@ function Budget() {
     const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
     const [showKey, setShowKey] = useState(false);
     const [viewMode, setViewMode] = useState('guide'); // 'guide' or 'chart'
+    const [hiddenCategories, setHiddenCategories] = useState(['Housing']);
+    const [categoryCount, setCategoryCount] = useState(16);
     const svgRef = useRef();
 
     // Save to localStorage whenever budgetData changes
@@ -31,9 +34,27 @@ function Budget() {
         localStorage.setItem('budgetData', JSON.stringify(budgetData));
     }, [budgetData]);
 
-    // Get all categories (default + custom)
+    // Predefined category sets (matching transactions page)
+    const categoryOptions = {
+        8: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Savings', 'Debt', 'Lifestyle'],
+        12: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Insurance', 'Health', 'Savings', 'Investing', 'Debt', 'Personal', 'Leisure'],
+        16: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Insurance', 'Health', 'Savings', 'Investing', 'Debt', 'Personal', 'Leisure', 'Education', 'Giving', 'Pets', 'Miscellaneous']
+    };
+
+    // Get all categories (based on selected category count only)
     const getAllCategories = () => {
-        return [...budgetData.defaultCategories, ...budgetData.customCategories];
+        return categoryOptions[categoryCount] || categoryOptions[16];
+    };
+
+    // Toggle category visibility
+    const toggleCategoryVisibility = (category) => {
+        setHiddenCategories(prev => {
+            if (prev.includes(category)) {
+                return prev.filter(cat => cat !== category);
+            } else {
+                return [...prev, category];
+            }
+        });
     };
 
     // Convert number to Roman numeral
@@ -41,6 +62,7 @@ function Budget() {
         const romanNumerals = [
             { value: 10, numeral: 'X' },
             { value: 9, numeral: 'IX' },
+            { value: 8, numeral: 'IIX' },
             { value: 5, numeral: 'V' },
             { value: 4, numeral: 'IV' },
             { value: 1, numeral: 'I' }
@@ -102,15 +124,15 @@ function Budget() {
         }
     };
 
-    // Prepare chart data for D3 radar chart (excluding housing)
+    // Prepare chart data for D3 radar chart (excluding hidden categories)
     const prepareRadarData = () => {
         const budgetEntries = Object.entries(budgetData.budgets);
         
         const radarData = [];
         budgetEntries.forEach(([category, amount]) => {
             const numericAmount = parseFloat(amount) || 0;
-            // Exclude housing from the chart
-            if (numericAmount > 0 && category.toLowerCase() !== 'housing') {
+            // Exclude only hidden categories from the chart
+            if (numericAmount > 0 && !hiddenCategories.includes(category)) {
                 radarData.push({
                     category: category,
                     percentage: numericAmount,
@@ -122,15 +144,52 @@ function Budget() {
         return radarData;
     };
 
+    // Prepare full list for key (including Housing as first item and all other categories)
+    const prepareKeyData = () => {
+        const budgetEntries = Object.entries(budgetData.budgets);
+        
+        const keyData = [];
+        
+        // First, add Housing if it exists
+        const housingEntry = budgetEntries.find(([category]) => category.toLowerCase() === 'housing');
+        if (housingEntry) {
+            const numericAmount = parseFloat(housingEntry[1]) || 0;
+            if (numericAmount > 0) {
+                keyData.push({
+                    category: housingEntry[0],
+                    percentage: numericAmount,
+                    amount: numericAmount
+                });
+            }
+        }
+        
+        // Then add all other categories
+        budgetEntries.forEach(([category, amount]) => {
+            const numericAmount = parseFloat(amount) || 0;
+            // Exclude housing (already added)
+            if (numericAmount > 0 && category.toLowerCase() !== 'housing') {
+                keyData.push({
+                    category: category,
+                    percentage: numericAmount,
+                    amount: numericAmount
+                });
+            }
+        });
+
+        return keyData;
+    };
+
     // D3 Radar Chart Effect
     useEffect(() => {
-        if (viewMode !== 'chart') return;
-        
-        const data = prepareRadarData();
-        if (!data || data.length === 0) return;
+        if (viewMode === 'chart' || (viewMode === 'guide' && document.querySelector('.guide-chart-section svg'))) {
+            const targetSvg = viewMode === 'chart' ? svgRef.current : document.querySelector('.guide-chart-section svg');
+            if (!targetSvg) return;
+            
+            const data = prepareRadarData();
+            if (!data || data.length === 0) return;
 
-        const svg = d3.select(svgRef.current);
-        svg.selectAll("*").remove();
+            const svg = d3.select(targetSvg);
+            svg.selectAll("*").remove();
 
         const margin = { top: 50, right: 50, bottom: 50, left: 50 };
         const width = 400 - margin.left - margin.right;
@@ -143,19 +202,23 @@ function Budget() {
             .append("g")
             .attr("transform", `translate(${width / 2 + margin.left}, ${height / 2 + margin.top})`);
 
-        // Prepare data - normalize to 0-100 scale
-        const maxPercentage = d3.max(data, d => d.percentage) || 100;
+        // Prepare data - calculate each category as percentage of total
+        const totalAmount = data.reduce((sum, d) => sum + d.amount, 0);
         const normalizedData = data.map(d => ({
             ...d,
-            normalizedValue: (d.percentage / maxPercentage) * 100
+            normalizedValue: totalAmount > 0 ? (d.amount / totalAmount) * 100 : 0
         }));
+
+        // Find the maximum percentage and round up to nearest 10
+        const maxPercentage = Math.max(...normalizedData.map(d => d.normalizedValue));
+        const maxScale = Math.ceil(maxPercentage / 10) * 10;
 
         const angleSlice = (Math.PI * 2) / normalizedData.length;
 
-        // Create radial scale
+        // Create radial scale - use dynamic max instead of 100
         const rScale = d3.scaleLinear()
             .range([0, radius])
-            .domain([0, 100]);
+            .domain([0, maxScale]);
 
         // Create the background circles
         const levels = 5;
@@ -171,7 +234,7 @@ function Budget() {
                 .style("stroke-opacity", 0.3)
                 .style("stroke-width", "1px");
 
-            // Add level labels
+            // Add level labels with dynamic scale
             if (level < levels) {
                 container.append("text")
                     .attr("x", 4)
@@ -179,7 +242,7 @@ function Budget() {
                     .attr("dy", "0.4em")
                     .style("font-size", "10px")
                     .style("fill", "#9ca3af")
-                    .text(`${(100 / levels) * level}%`);
+                    .text(`${(maxScale / levels) * level}%`);
             }
         }
 
@@ -233,67 +296,18 @@ function Budget() {
             .style("font-size", "12px")
             .style("font-weight", "600")
             .style("fill", "var(--text-color)")
+            .style("cursor", "help")
             .style("text-anchor", (d, i) => {
                 const angle = (angleSlice * i) * (180 / Math.PI);
                 return angle > 90 && angle < 270 ? "end" : "start";
             })
-            .text((d, i) => toRomanNumeral(i + 1));
+            .text((d, i) => toRomanNumeral(i + 1))
+            .append("title")
+            .text(d => d.category);
 
-        // Add percentage labels on hover
-        const tooltip = container.append("g")
-            .attr("class", "tooltip")
-            .style("opacity", 0);
 
-        tooltip.append("rect")
-            .attr("width", 80)
-            .attr("height", 30)
-            .attr("x", -40)
-            .attr("y", -35)
-            .style("fill", "var(--card-background)")
-            .style("stroke", "var(--border-color)")
-            .style("stroke-width", "1px")
-            .style("rx", "4");
-
-        const tooltipText = tooltip.append("text")
-            .attr("text-anchor", "middle")
-            .attr("dy", "-0.5em")
-            .style("font-size", "11px")
-            .style("font-weight", "600")
-            .style("fill", "var(--text-color)");
-
-        const tooltipAmount = tooltip.append("text")
-            .attr("text-anchor", "middle")
-            .attr("dy", "0.8em")
-            .style("font-size", "10px")
-            .style("fill", "#9ca3af");
-
-        // Add hover events to data points
-        container.selectAll(".radarCircle")
-            .on("mouseover", function(event, d) {
-                d3.select(this)
-                    .transition()
-                    .duration(200)
-                    .attr("r", 6)
-                    .style("fill", "#2d3441");
-
-                tooltip
-                    .style("opacity", 1)
-                    .attr("transform", `translate(${d3.select(this).attr("cx")}, ${d3.select(this).attr("cy")})`);
-
-                tooltipText.text(`${d.percentage.toFixed(1)}%`);
-                tooltipAmount.text(`${formatCurrency(d.amount)}`);
-            })
-            .on("mouseout", function() {
-                d3.select(this)
-                    .transition()
-                    .duration(200)
-                    .attr("r", 4)
-                    .style("fill", "#394353");
-
-                tooltip.style("opacity", 0);
-            });
-
-    }, [budgetData, viewMode, formatCurrency]);
+        }
+    }, [budgetData, viewMode, formatCurrency, hiddenCategories]);
 
     // Get housing budget amount to display separately
     const getHousingBudget = () => {
@@ -303,24 +317,35 @@ function Budget() {
         return housingEntries.length > 0 ? parseFloat(housingEntries[0][1]) || 0 : 0;
     };
 
+    // Calculate housing to income percentage
+    const getHousingPercentage = () => {
+        const income = budgetData.monthlyIncome || 0;
+        if (income === 0) return 0;
+        const housing = getHousingBudget();
+        return Math.min((housing / income) * 100, 100);
+    };
+
+    // Calculate total budget (all categories)
+    const getTotalBudget = () => {
+        return Object.entries(budgetData.budgets)
+            .reduce((sum, [, amount]) => sum + (parseFloat(amount) || 0), 0);
+    };
+
+    // Get category percentage of total budget (all categories)
+    const getCategoryPercentage = (amount) => {
+        const total = getTotalBudget();
+        if (total === 0) return 0;
+        return ((parseFloat(amount) || 0) / total) * 100;
+    };
+
     // Handle category selection
     const handleCategoryChange = (e) => {
         const category = e.target.value;
-        if (category === 'ADD_NEW_CATEGORY') {
-            if (getAllCategories().length >= 16) {
-                setShowLimitWarning(true);
-                return;
-            }
-            setShowAddCategory(true);
-            setSelectedCategory('');
-            setBudgetAmount('');
-        } else {
-            setSelectedCategory(category);
-            // Show current budget value in input field
-            const currentBudget = budgetData.budgets[category];
-            setBudgetAmount(currentBudget ? currentBudget.toString() : '');
-            setShowAddCategory(false);
-        }
+        setSelectedCategory(category);
+        // Show current budget value in input field
+        const currentBudget = budgetData.budgets[category];
+        setBudgetAmount(currentBudget ? currentBudget.toString() : '');
+        setShowAddCategory(false);
     };
 
     // Handle budget amount input
@@ -451,46 +476,34 @@ function Budget() {
     // Carousel content
     const carouselContent = [
         {
-            title: "Financial Planning Fundamentals",
-            content: `Effective budgeting begins with establishing a clear financial foundation that serves as your roadmap to financial success. Your budget should function as a comprehensive tool that projects necessary resources, measures current financial performance, and detects significant changes in your financial circumstances.
+            title: "Step One: Know Your Numbers Before You Spend a Dollar",
+            content: `The first rule of thumb is simple. You cannot manage what you do not measure. Your budget begins with a clear picture of what comes in and what goes out each month. Think of this as turning on the lights in a room you have walked through in the dark for a long time. Suddenly everything becomes easier to navigate.
 
-Start by identifying your core financial objectives and aligning them with realistic, attainable targets. This requires thorough analysis of your income sources, fixed expenses, variable costs, and discretionary spending patterns. Understanding these elements allows you to create a budget that reflects your actual financial situation rather than idealistic projections.
+Start by listing your income sources. Even irregular amounts count because awareness is the goal. Then review your spending from the last few weeks. Many people discover surprising patterns once the data is in front of them. Seeing it written down creates a sense of control that feels encouraging right away.
 
-Consider your budget as a living document that evolves with your circumstances. Regular assessment ensures your financial plan remains relevant and effective. Establish clear priorities for your spending categories, distinguishing between needs and wants while maintaining flexibility for unexpected opportunities or challenges.
+Use your budget builder to select the preset categories that match your real life. Essentials like housing and groceries, lifestyle choices like dining out or hobbies, and occasional expenses like travel or gifts. Keeping it simple at the start helps you stay consistent without feeling overwhelmed.
 
-Successful budgeting also involves setting aside emergency funds and planning for both short-term and long-term financial goals. This comprehensive approach creates a stable foundation that supports your financial well-being and provides security against unforeseen circumstances.
-
-Remember that budgeting is not about restriction but about making informed choices that align with your values and objectives. When your spending reflects your priorities, you'll find greater satisfaction and success in reaching your financial goals.`
+Take a moment to reflect on what these numbers tell you. You may spot a few habits you want to change and that is completely normal. This step is about clarity rather than judgment. Knowing where you stand today gives you the power to make better choices tomorrow.`
         },
         {
-            title: "Performance Monitoring & Control",
-            content: `Regular monitoring transforms your budget from a static plan into a dynamic financial management tool. Compare actual results to your budget consistently to identify trends, detect errors, and measure progress toward your financial objectives.
+            title: "Step Two: Assign Every Dollar a Job",
+            content: `The second rule of thumb is to direct every dollar with intention. A budget works best when money has a purpose. Think of this like giving your resources a clear mission. You become the one in charge of where everything goes rather than letting the month decide for you.
 
-Establish a routine for reviewing your financial performance, whether weekly, bi-weekly, or monthly. During these reviews, analyze variances between planned and actual spending, investigating significant differences to understand their causes. This practice helps you identify spending patterns and make informed adjustments to stay on track.
+Begin with the essential categories inside your budget builder. Housing, food, transportation, utilities. Putting these in order first provides a solid base and removes a lot of anxiety that comes from not knowing if the basics are covered.
 
-When expenditures exceed budget allocations, take immediate corrective action. This might involve reducing spending in other categories, finding additional income sources, or adjusting future budget periods. The key is addressing issues promptly before they compound into larger financial problems.
+Next, choose the preset categories that relate to your goals. Maybe you want to build savings, reduce debt, or set aside money for something meaningful. Even small contributions create momentum. Progress comes from doing the right things steadily, not from trying to be perfect on the first attempt.
 
-Implement control procedures that prevent unauthorized or excessive spending. This could include setting spending limits on credit cards, requiring approval for large purchases, or using separate accounts for different budget categories. These safeguards help maintain financial discipline and protect your resources.
-
-Create comprehensive financial reports that provide clear visibility into your income and expenses. Include budget-versus-actual comparisons and highlight areas requiring attention. This documentation serves as valuable input for future budget planning and helps identify opportunities for improvement.
-
-Develop accountability measures that keep you motivated and on track. This might involve sharing your progress with a trusted advisor, using financial tracking apps, or setting up automatic alerts when spending approaches budget limits.`
+While you assign dollars, make space for a small buffer. Life is unpredictable, and a little flexibility prevents frustration. A realistic plan is always better than a strict one that collapses the moment real life shows up. Give yourself grace and room to breathe.`
         },
         {
-            title: "Strategic Financial Decision Making",
-            content: `Strategic financial analysis elevates your budgeting from simple expense tracking to comprehensive financial planning. Before making significant changes to your budget categories or financial commitments, conduct thorough cost-benefit analysis to ensure optimal resource allocation.
+            title: "Step Three: Review, Adjust, and Make It Livable",
+            content: `The third rule of thumb is to return to your plan regularly. A budget is not meant to be a fixed contract. It is better understood as a living document that grows with your needs and experiences. The more you interact with it, the more confident you become.
 
-Evaluate all financial decisions through the lens of opportunity cost. When considering new expenses or investments, assess not just their direct costs but also what opportunities you might forgo. This analysis helps prioritize spending and ensures resources flow toward activities that provide the greatest value.
+Start with a quick review each week. This keeps everything fresh without taking much time. You will notice patterns as you go. Maybe one category always feels tight or another always has extra room. Awareness like this helps you make smart adjustments.
 
-Maintain detailed documentation of your financial decisions and their outcomes. Track how budget changes affect your overall financial health and document lessons learned for future reference. This historical perspective improves your decision-making capabilities over time.
+Once you see the patterns, adjust the preset categories in your builder to better match reality. Maybe groceries need a little more or entertainment needs a little less. These tweaks are a sign of progress, not failure. They show that you are learning what works for you.
 
-Regularly reassess your financial assumptions and projections to ensure they remain valid. Economic conditions, personal circumstances, and life priorities change, requiring corresponding adjustments to your financial strategy. Stay flexible and willing to modify your approach when circumstances warrant.
-
-Consider the long-term implications of your financial choices. Decisions made today can have lasting effects on your financial security and ability to achieve future goals. Balance immediate needs with long-term objectives to create sustainable financial success.
-
-When significant variances occur, conduct root cause analysis to understand underlying factors. Document corrective actions taken, including which accounts were affected, when changes were implemented, and who authorized the modifications. This systematic approach ensures continuous improvement in your financial management practices.
-
-Remember that strategic financial management is an ongoing process that requires patience, discipline, and regular adjustment. By maintaining focus on your long-term objectives while remaining flexible in your tactics, you'll build a robust financial foundation that supports your aspirations.`
+Finally, consider how the budget feels. A good plan supports your life instead of restricting it. If you can meet your needs, enjoy some wants, and make steady movement toward your goals, you are building something strong. With each review, your confidence grows and the process becomes more natural.`
         }
     ];
 
@@ -558,8 +571,34 @@ Remember that strategic financial management is an ongoing process that requires
                                         {category}
                                     </option>
                                 ))}
-                                <option value="ADD_NEW_CATEGORY">Add a Category</option>
                             </select>
+                            
+                            {/* Category Count Toggle */}
+                            <div className="category-count-toggle">
+                                <button 
+                                    type="button"
+                                    className={categoryCount === 8 ? 'active' : ''}
+                                    onClick={() => setCategoryCount(8)}
+                                >
+                                    Eight
+                                </button>
+                                <button 
+                                    type="button"
+                                    className={categoryCount === 12 ? 'active' : ''}
+                                    onClick={() => setCategoryCount(12)}
+                                >
+                                    Twelve
+                                </button>
+                                <button 
+                                    type="button"
+                                    className={categoryCount === 16 ? 'active' : ''}
+                                    onClick={() => setCategoryCount(16)}
+                                >
+                                    Sixteen
+                                </button>
+                            </div>
+                            <label className="category-count-label">Number of Categories</label>
+                            
                             <p className="category-limit-text">Maximum Category Limit: 16</p>
 
                             {showAddCategory && (
@@ -595,53 +634,65 @@ Remember that strategic financial management is an ongoing process that requires
                             </button>
                         </div>
 
-                        <div className="view-all-section">
-                            <button 
-                                onClick={() => setShowViewAll(true)}
-                                className="view-all-btn"
-                            >
-                                View All
-                            </button>
-                        </div>
+                        {/* Category Key - Always visible */}
+                        {prepareKeyData().length > 0 && (
+                            <div className="budget-card-key">
+                                <h4 className="key-heading">Category Key</h4>
+
+                                {/* Column Headers */}
+                                <div className="key-column-headers">
+                                    <span className="header-view">View</span>
+                                    <span className="header-no">No.</span>
+                                    <span className="header-category">Category</span>
+                                    <span className="header-value">Value</span>
+                                    <span className="header-percentage">Percentage</span>
+                                </div>
+
+                                <div className="key-list-static">
+                                    {prepareKeyData().map((item, index) => (
+                                        <div key={index} className="key-item-static">
+                                            <span className="key-view-static">
+                                                <EyeIcon 
+                                                    visible={!hiddenCategories.includes(item.category)}
+                                                    onClick={() => toggleCategoryVisibility(item.category)}
+                                                    size={18}
+                                                />
+                                            </span>
+                                            <span className="key-numeral-static">{toRomanNumeral(index + 1)}</span>
+                                            <span className="key-category-static">{item.category}</span>
+                                            <span className="key-amount-static">{formatCurrency(item.amount)}</span>
+                                            <span className="key-percentage-static">{getCategoryPercentage(item.amount).toFixed(1)}%</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* User Guide with Carousel */}
                     <div className="budget-user-guide">
                         <h3 className="guide-section-heading">Financial Management Principles</h3>
-                        <div className="view-toggle-container">
-                            <button 
-                                className={`toggle-btn ${viewMode === 'guide' ? 'active' : ''}`}
-                                onClick={() => setViewMode('guide')}
-                            >
-                                Guide View
-                            </button>
-                            <button 
-                                className={`toggle-btn ${viewMode === 'chart' ? 'active' : ''}`}
-                                onClick={() => setViewMode('chart')}
-                            >
-                                Chart View
-                            </button>
-                        </div>
-                        {viewMode === 'guide' ? (
-                        <>
                         <div className="guide-carousel-container">
                             <div className="carousel-nav-buttons">
                                 <button 
                                     className="carousel-nav-btn" 
                                     onClick={prevSlide}
                                 >
-                                    ‹
+                                    Previous
                                 </button>
+                                <div className="carousel-indicator">
+                                    {currentCarouselIndex + 1} of {carouselContent.length}
+                                </div>
                                 <button 
                                     className="carousel-nav-btn" 
                                     onClick={nextSlide}
                                 >
-                                    ›
+                                    Next
                                 </button>
                             </div>
                             <div 
                                 className="guide-carousel-wrapper" 
-                                style={{ transform: `translateX(-${currentCarouselIndex * 100}%)` }}
+                                style={{ transform: `translateX(-${currentCarouselIndex * 33.333}%)` }}
                             >
                                 {carouselContent.map((item, index) => (
                                     <div key={index} className="guide-section">
@@ -653,53 +704,26 @@ Remember that strategic financial management is an ongoing process that requires
                                 ))}
                             </div>
                         </div>
-                        {/* Carousel indicator */}
-                        <div className="carousel-indicator">
-                            {currentCarouselIndex + 1} of {carouselContent.length}
-                        </div>
-                        </>
-                        ) : (
-                        <>
-                    <div className="chart-header-with-button">
-                        <h3 className="chart-title">Budget Distribution</h3>
-                        <button 
-                            className="view-key-btn"
-                            onClick={() => setShowKey(!showKey)}
-                        >
-                            {showKey ? 'Hide Key' : 'View Key'}
-                        </button>
-                    </div>
-                    
-                    <div className="chart-content-wrapper">
-                        <div className="chart-wrapper">
-                            <svg ref={svgRef}></svg>
-                        </div>
                         
-                        {/* Key Popup */}
-                        {showKey && (
-                            <div className="category-key-popup">
-                                <h4>Category Key</h4>
-                                <div className="key-list">
-                                    {prepareRadarData().map((item, index) => (
-                                        <div key={index} className="key-item">
-                                            <span className="key-numeral">{toRomanNumeral(index + 1)}</span>
-                                            <span className="key-separator">—</span>
-                                            <span className="key-category">{item.category}</span>
-                                        </div>
-                                    ))}
+                        {/* Divider */}
+                        <div className="guide-chart-divider"></div>
+                        
+                        {/* Chart Section */}
+                        <div className="guide-chart-section">
+                            <h3 className="chart-title">Budget Distribution</h3>
+                            <p className="chart-tooltip">Each axis represents a category, and the shaded area shows the relative proportion of your total budget.</p>
+                            
+                            <div className="chart-content-wrapper">
+                                <div className="chart-wrapper">
+                                    <svg ref={svgRef}></svg>
                                 </div>
                             </div>
-                        )}
-                    </div>
-                        {/* Housing category display */}
-                        {getHousingBudget() > 0 && (
-                        <div className="housing-display">
-                            <p>Housing: {formatCurrency(getHousingBudget())}</p>
-                            <small>(Excluded from chart for better visualization)</small>
+                            
+                            <p className="chart-bottom-tooltip">The chart adjusts its scale based on your highest budget percentage. Concentric circles represent percentage intervals, helping you visualize how your budget is distributed across all categories.</p>
                         </div>
-                    )}
-                        </>
-                        )}
+                        
+                        {/* Bottom Divider */}
+                        <div className="guide-chart-divider"></div>
                     </div>
                 </div>
             </div>
