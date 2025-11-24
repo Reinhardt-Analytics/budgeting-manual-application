@@ -23,15 +23,66 @@ ChartJS.register(
 
 const HomeRadarChart = () => {
     // Define categories and their ranges (updated to match budgets page)
-    const categories = ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Savings', 'Debt', 'Lifestyle'];
+    // Category options for toggle
+    const categoryOptions = {
+        8: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Savings', 'Debt', 'Lifestyle'],
+        12: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Savings', 'Debt', 'Lifestyle', 'Healthcare', 'Education', 'Insurance', 'Entertainment'],
+        16: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Savings', 'Debt', 'Lifestyle', 'Healthcare', 'Education', 'Insurance', 'Entertainment', 'Pets', 'Gifts', 'Travel', 'Miscellaneous']
+    };
+    // State for selected category count
+    const [categoryCount, setCategoryCount] = useState(8);
+    const categories = categoryOptions[categoryCount];
     
     // State to track theme changes and force re-render
     const [currentTheme, setCurrentTheme] = useState(() => 
         document.body.getAttribute('data-theme') || 'light'
     );
-    
+
     // State to track hidden categories
     const [hiddenCategories, setHiddenCategories] = useState([]);
+
+    // Regenerate chart data when category count changes
+    useEffect(() => {
+        const initialData = generateRandomData();
+        setFullData({
+            budgetData: initialData.budgetData,
+            transactionPercentages: initialData.transactionPercentages
+        });
+        // Modern accessible color scheme
+        const isDark = (document.body.getAttribute('data-theme') || 'light') === 'dark';
+        const budgetBorderColor = isDark ? '#63B3ED' : '#2B6CB0';
+        const budgetBackgroundColor = isDark ? 'rgba(99,179,237,0.25)' : 'rgba(43,108,176,0.15)';
+        const transactionBorderColor = isDark ? '#F56565' : '#C53030';
+        const transactionBackgroundColor = isDark ? 'rgba(245,101,101,0.25)' : 'rgba(197,48,48,0.15)';
+        setChartData({
+            labels: categories.map((_, index) => toRomanNumeral(index + 1)),
+            datasets: [
+                {
+                    label: 'Budget Categories (% of Total Budget)',
+                    data: initialData.budgetData,
+                    backgroundColor: budgetBackgroundColor,
+                    borderColor: budgetBorderColor,
+                    borderWidth: 2,
+                    pointBackgroundColor: budgetBorderColor,
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: budgetBorderColor,
+                },
+                {
+                    label: 'Transaction Percentages',
+                    data: initialData.transactionPercentages,
+                    backgroundColor: transactionBackgroundColor,
+                    borderColor: transactionBorderColor,
+                    borderWidth: 2,
+                    pointBackgroundColor: transactionBorderColor,
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: transactionBorderColor,
+                }
+            ]
+        });
+        setHiddenCategories([]); // Reset hidden categories when changing count
+    }, [categoryCount]);
     
     // Convert number to Roman numeral
     const toRomanNumeral = (num) => {
@@ -95,30 +146,50 @@ const HomeRadarChart = () => {
 
     
     // Budget dataset ranges (percentage of total budget)
-    const budgetRanges = {
-        'Housing': [22, 36],
-        'Utilities': [12, 18],
-        'Groceries': [14, 22],
-        'Dining': [8, 14],
-        'Transport': [8, 18],
-        'Savings': [14, 26],
-        'Debt': [8, 18],
-        'Lifestyle': [8, 16]
+    const getBudgetRanges = (cats) => {
+        const base = {
+            'Housing': [22, 36],
+            'Utilities': [12, 18],
+            'Groceries': [14, 22],
+            'Dining': [8, 14],
+            'Transport': [8, 18],
+            'Savings': [14, 26],
+            'Debt': [8, 18],
+            'Lifestyle': [8, 16],
+            'Healthcare': [4, 10],
+            'Education': [2, 8],
+            'Insurance': [2, 8],
+            'Entertainment': [2, 8],
+            'Pets': [2, 6],
+            'Gifts': [2, 6],
+            'Travel': [2, 8],
+            'Miscellaneous': [2, 8]
+        };
+        // Only return ranges for selected categories
+        const ranges = {};
+        cats.forEach(cat => {
+            ranges[cat] = base[cat] || [2, 8];
+        });
+        return ranges;
     };
 
     // Actual spending dataset ranges (percentage of category budget - can exceed 100%)
-    // Even index categories: 80–140%, Odd index categories: 60–120%, and cannot be between 90% and 110%
-    const spendingRanges = {};
-    categories.forEach((cat, idx) => {
-        if (idx % 2 === 0) {
-            spendingRanges[cat] = [80, 140];
-        } else {
-            spendingRanges[cat] = [60, 120];
-        }
-    });
+    const getSpendingRanges = (cats) => {
+        const ranges = {};
+        cats.forEach((cat, idx) => {
+            if (idx % 2 === 0) {
+                ranges[cat] = [80, 140];
+            } else {
+                ranges[cat] = [60, 120];
+            }
+        });
+        return ranges;
+    };
 
     // Function to generate random data within ranges that adds up to 100%
     const generateRandomData = () => {
+        const budgetRanges = getBudgetRanges(categories);
+        const spendingRanges = getSpendingRanges(categories);
         // Generate random numbers within ranges for each category, rounded to nearest tenth
         const generateRandomTenthInRange = (min, max) => {
             const value = Math.random() * (max - min) + min;
@@ -382,9 +453,28 @@ const HomeRadarChart = () => {
         <div className="radar-chart-full-container">
             <div className="radar-chart-container">
                 <h3 className="chart-title">Budget vs Spending Overview</h3>
-                <p className="chart-subtitle">Sample Data</p>
+                <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', margin: '8px 0 18px 0'}}>
+                    <p className="chart-tooltip" style={{textAlign: 'center', fontSize: '1.08em', fontWeight: 500, letterSpacing: '0.01em', maxWidth: '480px'}}>
+                        Your dashboard will look like this once you enter your information. Categories and details are fully customizable with Saiel.
+                    </p>
+                </div>
                 {/* Controls and info below title/subtitle and above chart */}
                 <div className="chart-controls-top" style={{textAlign: 'center', marginBottom: '20px'}}>
+                    {/* Category count toggle - consistent with other pages */}
+                    <div className="category-toggle-group">
+                        <button
+                            className={`category-toggle-btn${categoryCount === 8 ? ' active' : ''}`}
+                            onClick={() => setCategoryCount(8)}
+                        >Eight</button>
+                        <button
+                            className={`category-toggle-btn${categoryCount === 12 ? ' active' : ''}`}
+                            onClick={() => setCategoryCount(12)}
+                        >Twelve</button>
+                        <button
+                            className={`category-toggle-btn${categoryCount === 16 ? ' active' : ''}`}
+                            onClick={() => setCategoryCount(16)}
+                        >Sixteen</button>
+                    </div>
                     <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '32px', marginBottom: '8px'}}>
                         <span
                             style={{
@@ -400,25 +490,25 @@ const HomeRadarChart = () => {
                         >&#9679; Transaction vs. Budget (%)</span>
                     </div>
                     <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '8px'}}>
-                        <label htmlFor="income-input" style={{marginBottom: '4px'}}>Set Income:</label>
+                        <label htmlFor="income-input" style={{marginBottom: '4px', fontFamily: 'inherit'}}>Set Income:</label>
                         <input
                             id="income-input"
                             type="text"
+                            inputMode="decimal"
                             value={formatCurrency(income)}
                             onChange={(e) => {
-                                const numericValue = e.target.value.replace(/[^0-9]/g, '');
-                                setIncome(Number(numericValue) || 0);
+                                // Remove non-numeric and non-decimal characters
+                                const raw = e.target.value.replace(/[^\d.]/g, '');
+                                // Parse and round to two decimals
+                                let num = parseFloat(raw);
+                                if (isNaN(num)) num = 0;
+                                setIncome(Math.round(num * 100) / 100);
                             }}
                             className="income-input"
-                            style={{textAlign: 'center', fontWeight: 500, fontSize: '1.1em', width: '120px'}}
+                            style={{textAlign: 'center', fontWeight: 500, fontSize: '1.1em', width: '120px', fontFamily: 'inherit'}}
+                            autoComplete="off"
                         />
                     </div>
-                    <button onClick={randomizeData} className="randomize-btn" style={{margin: '12px 0'}}>
-                        Randomize Data
-                    </button>
-                    <p className="chart-tooltip" style={{marginTop: '12px'}}>
-                        Your dashboard will look like this once you enter your information. Categories and details are fully customizable with Saiel.
-                    </p>
                 </div>
                 {/* Chart below controls/info */}
                 <div className="chart-wrapper-centered">
@@ -426,6 +516,9 @@ const HomeRadarChart = () => {
                         <Radar data={chartData} options={getChartOptions()} />
                     </div>
                 </div>
+                <button onClick={randomizeData} className="randomize-btn" style={{margin: '18px auto 0 auto', display: 'block'}}>
+                    Randomize Data
+                </button>
                 <div className="financial-summary-inside">
                     <div className="total-spent-display">
                         <span>Total Spent: {formatCurrency(calculateRemaining())}</span>
@@ -434,7 +527,52 @@ const HomeRadarChart = () => {
                         <span>Remaining: {formatCurrency(calculateTotalSpent())}</span>
                     </div>
                 </div>
-                {/* Category Key and other content can go here if needed */}
+                {/* Category Key Table */}
+                <div className="category-key-container" style={{marginTop: '32px', background: '#fff', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: '24px', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto'}}>
+                    <h4 style={{textAlign: 'center', marginBottom: '18px', fontWeight: 600}}>Category Key</h4>
+                    <table className="category-key-table" style={{width: '100%', borderCollapse: 'collapse'}}>
+                        <thead>
+                            <tr style={{borderBottom: '2px solid #e3eafc', fontWeight: 600, fontSize: '1em'}}>
+                                <th style={{padding: '8px'}}>VIEW</th>
+                                <th style={{padding: '8px'}}>NO.</th>
+                                <th style={{padding: '8px'}}>CATEGORY</th>
+                                <th style={{padding: '8px'}}>VALUE</th>
+                                <th style={{padding: '8px'}}>PERCENTAGE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {categories.map((cat, idx) => {
+                                const isHidden = hiddenCategories.includes(cat);
+                                const budgetValue = fullData.budgetData[idx] ? income * (fullData.budgetData[idx] / 100) : 0;
+                                const transactionValue = fullData.transactionPercentages[idx] ? income * (fullData.transactionPercentages[idx] / 100) : 0;
+                                const percentage = budgetValue > 0 ? (transactionValue / budgetValue) * 100 : 0;
+                                return (
+                                    <tr key={cat} style={{borderBottom: '1px solid #f3f4f6', fontWeight: 500, fontSize: '0.98em'}}>
+                                        <td style={{textAlign: 'center', padding: '6px'}}>
+                                            <span style={{cursor: 'pointer', opacity: isHidden ? 0.4 : 1}} onClick={() => toggleCategoryVisibility(cat)}>
+                                                {isHidden ? (
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M2 12C4.5 7 8.5 4 12 4c3.5 0 7.5 3 10 8-2.5 5-6.5 8-10 8-3.5 0-7.5-3-10-8z" stroke="#394353" strokeWidth="2" fill="none" />
+                                                        <line x1="3" y1="21" x2="21" y2="3" stroke="#394353" strokeWidth="2" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M2 12C4.5 7 8.5 4 12 4c3.5 0 7.5 3 10 8-2.5 5-6.5 8-10 8-3.5 0-7.5-3-10-8z" stroke="#394353" strokeWidth="2" fill="none" />
+                                                        <circle cx="12" cy="12" r="3" stroke="#394353" strokeWidth="2" fill="none" />
+                                                    </svg>
+                                                )}
+                                            </span>
+                                        </td>
+                                        <td style={{textAlign: 'center', padding: '6px'}}>{toRomanNumeral(idx + 1)}</td>
+                                        <td style={{padding: '6px'}}>{cat}</td>
+                                        <td style={{textAlign: 'right', padding: '6px'}}>{formatCurrency(budgetValue)}</td>
+                                        <td style={{textAlign: 'right', padding: '6px'}}>{percentage ? percentage.toFixed(1) : '0.0'}%</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
