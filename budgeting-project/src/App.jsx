@@ -3,6 +3,7 @@ import saielLogo from './assets/saiel-logo-transparent.png'
 import Budget from './components/budget-creation.jsx'
 import HomeRadarChart from './components/home-radar-chart.jsx'
 import Transactions from './components/transactions.jsx'
+import Dashboard from './components/dashboard.jsx';
 import './App.css'
 
 function App() {
@@ -35,8 +36,8 @@ function App() {
         return <Budget />
       case 'Transactions':
         return <Transactions />
-      case 'Dashboard':
-        return <div><h2>Dashboard Page</h2><p>Dashboard coming soon!</p></div>
+        case 'Dashboard':
+          return <Dashboard />
       case 'Home':
       default:
         return (
