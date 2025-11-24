@@ -563,6 +563,30 @@ function Transactions() {
                     <span>Total Amount: {formatCurrency(totalTransactionAmount)}</span>
                   </div>
                 )}
+                {/* Month and Year Dropdowns */}
+                <div style={{ display: 'flex', alignItems: 'center', marginTop: '12px', gap: '16px' }}>
+                  <select style={{ padding: '6px 12px', fontSize: '1em', borderRadius: '6px', border: '1px solid #CBD5E0' }}>
+                    <option value="">Select Month</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                  </select>
+                  <select style={{ padding: '6px 12px', fontSize: '1em', borderRadius: '6px', border: '1px solid #CBD5E0' }}>
+                    <option value="">Select Year</option>
+                    {Array.from({ length: 6 }, (_, i) => 2020 + i).map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
                 {showDummyData && (
                   <p className="sample-data-tooltip">Sample data shown below. Enter in data to refresh page information.</p>
                 )}

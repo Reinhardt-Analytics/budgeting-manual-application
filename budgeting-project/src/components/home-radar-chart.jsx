@@ -22,8 +22,8 @@ ChartJS.register(
 );
 
 const HomeRadarChart = () => {
-    // Define categories and their ranges
-    const categories = ['Housing', 'Utilities', 'Transport', 'Medical', 'Groceries', 'Savings'];
+    // Define categories and their ranges (updated to match budgets page)
+    const categories = ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Savings', 'Debt', 'Lifestyle'];
     
     // State to track theme changes and force re-render
     const [currentTheme, setCurrentTheme] = useState(() => 
@@ -97,139 +97,102 @@ const HomeRadarChart = () => {
     // Budget dataset ranges (percentage of total budget)
     const budgetRanges = {
         'Housing': [22, 36],
-        'Utilities': [10, 18],
-        'Transport': [6, 16],
-        'Medical': [6, 22],
-        'Groceries': [12, 24],
-        'Savings': [14, 26]
+        'Utilities': [12, 18],
+        'Groceries': [14, 22],
+        'Dining': [8, 14],
+        'Transport': [8, 18],
+        'Savings': [14, 26],
+        'Debt': [8, 18],
+        'Lifestyle': [8, 16]
     };
-    
+
     // Actual spending dataset ranges (percentage of category budget - can exceed 100%)
-    const spendingRanges = {
-        'Housing': [60, 140],
-        'Utilities': [60, 140],
-        'Transport': [60, 140],
-        'Medical': [60, 140],
-        'Groceries': [60, 140],
-        'Savings': [60, 140]
-    };
+    // Even index categories: 80–140%, Odd index categories: 60–120%, and cannot be between 90% and 110%
+    const spendingRanges = {};
+    categories.forEach((cat, idx) => {
+        if (idx % 2 === 0) {
+            spendingRanges[cat] = [80, 140];
+        } else {
+            spendingRanges[cat] = [60, 120];
+        }
+    });
 
     // Function to generate random data within ranges that adds up to 100%
     const generateRandomData = () => {
-        // Generate random even numbers within ranges for each category
-        const generateEvenInRange = (min, max) => {
-            const range = Math.floor((max - min) / 2) + 1;
-            return (Math.floor(Math.random() * range) * 2) + (min % 2 === 0 ? min : min + 1);
+        // Generate random numbers within ranges for each category, rounded to nearest tenth
+        const generateRandomTenthInRange = (min, max) => {
+            const value = Math.random() * (max - min) + min;
+            return Math.round(value * 10) / 10;
         };
 
         // Generate initial budget data
         let budgetData = categories.map(category => {
             const [min, max] = budgetRanges[category];
-            return generateEvenInRange(min, max);
+            return generateRandomTenthInRange(min, max);
         });
 
-        // Adjust to make total exactly 100
+        // Adjust to make total exactly 100 (rounded to nearest tenth)
         let total = budgetData.reduce((sum, val) => sum + val, 0);
         const targetTotal = 100;
-        
-        // Distribute the difference to make it exactly 100
-        while (total !== targetTotal) {
-            const diff = targetTotal - total;
+        let diff = Math.round((targetTotal - total) * 10) / 10;
+        if (diff !== 0) {
+            // Distribute the difference to a random category
             const categoryIndex = Math.floor(Math.random() * categories.length);
-            const [min, max] = budgetRanges[categories[categoryIndex]];
-            
-            if (diff > 0) {
-                // Need to add
-                if (budgetData[categoryIndex] + 2 <= max) {
-                    budgetData[categoryIndex] += 2;
-                    total += 2;
-                }
-            } else {
-                // Need to subtract
-                if (budgetData[categoryIndex] - 2 >= min) {
-                    budgetData[categoryIndex] -= 2;
-                    total -= 2;
-                }
-            }
-            
-            // Prevent infinite loop
-            if (Math.abs(diff) === 1) {
-                // Find a category that can be adjusted by 1
-                for (let i = 0; i < categories.length; i++) {
-                    const [min, max] = budgetRanges[categories[i]];
-                    if (diff > 0 && budgetData[i] + 1 <= max && (budgetData[i] + 1) % 2 === 0) {
-                        budgetData[i] += 1;
-                        total += 1;
-                        break;
-                    } else if (diff < 0 && budgetData[i] - 1 >= min && (budgetData[i] - 1) % 2 === 0) {
-                        budgetData[i] -= 1;
-                        total -= 1;
-                        break;
-                    }
-                }
-                break;
-            }
+            budgetData[categoryIndex] = Math.round((budgetData[categoryIndex] + diff) * 10) / 10;
         }
-        
-        // Generate spending percentages (even numbers within ranges)
+
+        // Generate spending percentages (rounded to nearest tenth)
         const spendingPercentages = categories.map(category => {
             const [min, max] = spendingRanges[category];
-            return generateEvenInRange(min, max);
+            return generateRandomTenthInRange(min, max);
         });
-        
+
         // Calculate transaction percentages (budget decimal × transaction decimal)
-        // Then convert back to percentage scale for visualization and round to nearest even integer at second decimal place
+        // Then convert back to percentage scale for visualization and round to nearest tenth
         const transactionPercentages = budgetData.map((budgetPercent, index) => {
-            const budgetDecimal = budgetPercent / 100; // Convert 28% to 0.28
-            const transactionDecimal = spendingPercentages[index] / 100; // Convert 140% to 1.4
-            const result = budgetDecimal * transactionDecimal; // 0.28 × 1.4 = 0.392
-            
-            // Convert back to percentage scale for better visualization (0.392 → 39.2)
-            const resultPercent = result * 100;
-            
-            // Round to nearest even integer at second decimal place
-            const rounded = Math.round(resultPercent * 100) / 100; // Round to 2 decimal places
-            const secondDecimal = Math.round(rounded * 100) % 10;
-            
-            // If second decimal is odd, adjust to make it even
-            if (secondDecimal % 2 === 1) {
-                const adjustment = secondDecimal === 9 ? -0.01 : 0.01;
-                return Math.round((rounded + adjustment) * 100) / 100;
-            }
-            
-            return rounded;
+            const budgetDecimal = budgetPercent / 100;
+            const transactionDecimal = spendingPercentages[index] / 100;
+            const result = budgetDecimal * transactionDecimal;
+            // Convert back to percentage scale and round to nearest tenth
+            return Math.round(result * 1000) / 10;
         });
-        
+
         return { budgetData, spendingPercentages, transactionPercentages };
     };
 
     // Initialize chart data with random values
     const [chartData, setChartData] = useState(() => {
         const initialData = generateRandomData();
+        // Modern accessible color scheme
+        const isDark = (document.body.getAttribute('data-theme') || 'light') === 'dark';
+        const budgetBorderColor = isDark ? '#63B3ED' : '#2B6CB0';
+        const budgetBackgroundColor = isDark ? 'rgba(99,179,237,0.25)' : 'rgba(43,108,176,0.15)';
+        const transactionBorderColor = isDark ? '#F56565' : '#C53030';
+        const transactionBackgroundColor = isDark ? 'rgba(245,101,101,0.25)' : 'rgba(197,48,48,0.15)';
         return {
             labels: categories.map((_, index) => toRomanNumeral(index + 1)),
             datasets: [
                 {
                     label: 'Budget Categories (% of Total Budget)',
                     data: initialData.budgetData,
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: budgetBackgroundColor,
+                    borderColor: budgetBorderColor,
                     borderWidth: 2,
-                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointBackgroundColor: budgetBorderColor,
                     pointBorderColor: '#fff',
                     pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgba(54, 162, 235, 1)',
+                    pointHoverBorderColor: budgetBorderColor,
                 },
                 {
                     label: 'Transaction Percentages',
                     data: initialData.transactionPercentages,
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: transactionBackgroundColor,
+                    borderColor: transactionBorderColor,
                     borderWidth: 2,
-                    pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                    pointBackgroundColor: transactionBorderColor,
                     pointBorderColor: '#fff',
                     pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgba(255, 99, 132, 1)',
+                    pointHoverBorderColor: transactionBorderColor,
                 }
             ]
         };
@@ -260,17 +223,31 @@ const HomeRadarChart = () => {
             transactionPercentages: newData.transactionPercentages
         });
         
+        // Modern accessible color scheme
+        const isDark = (document.body.getAttribute('data-theme') || 'light') === 'dark';
+        const budgetBorderColor = isDark ? '#63B3ED' : '#2B6CB0';
+        const budgetBackgroundColor = isDark ? 'rgba(99,179,237,0.25)' : 'rgba(43,108,176,0.15)';
+        const transactionBorderColor = isDark ? '#F56565' : '#C53030';
+        const transactionBackgroundColor = isDark ? 'rgba(245,101,101,0.25)' : 'rgba(197,48,48,0.15)';
         setChartData(prevData => ({
             ...prevData,
             labels: categories.map((_, index) => toRomanNumeral(index + 1)),
             datasets: [
                 {
                     ...prevData.datasets[0],
-                    data: newData.budgetData
+                    data: newData.budgetData,
+                    backgroundColor: budgetBackgroundColor,
+                    borderColor: budgetBorderColor,
+                    pointBackgroundColor: budgetBorderColor,
+                    pointHoverBorderColor: budgetBorderColor,
                 },
                 {
                     ...prevData.datasets[1],
-                    data: newData.transactionPercentages
+                    data: newData.transactionPercentages,
+                    backgroundColor: transactionBackgroundColor,
+                    borderColor: transactionBorderColor,
+                    pointBackgroundColor: transactionBorderColor,
+                    pointHoverBorderColor: transactionBorderColor,
                 }
             ]
         }));
@@ -280,21 +257,34 @@ const HomeRadarChart = () => {
     
     // Update chart data when hidden categories change
     useEffect(() => {
+        // Modern accessible color scheme
+        const isDark = (document.body.getAttribute('data-theme') || 'light') === 'dark';
+        const budgetBorderColor = isDark ? '#63B3ED' : '#2B6CB0';
+        const budgetBackgroundColor = isDark ? 'rgba(99,179,237,0.25)' : 'rgba(43,108,176,0.15)';
+        const transactionBorderColor = isDark ? '#F56565' : '#C53030';
+        const transactionBackgroundColor = isDark ? 'rgba(245,101,101,0.25)' : 'rgba(197,48,48,0.15)';
         setChartData(prevData => {
             const visibleIndices = categories
                 .map((cat, index) => !hiddenCategories.includes(cat) ? index : -1)
                 .filter(index => index !== -1);
-            
             return {
                 labels: visibleIndices.map(index => toRomanNumeral(index + 1)),
                 datasets: [
                     {
                         ...prevData.datasets[0],
-                        data: visibleIndices.map(index => fullData.budgetData[index])
+                        data: visibleIndices.map(index => fullData.budgetData[index]),
+                        backgroundColor: budgetBackgroundColor,
+                        borderColor: budgetBorderColor,
+                        pointBackgroundColor: budgetBorderColor,
+                        pointHoverBorderColor: budgetBorderColor,
                     },
                     {
                         ...prevData.datasets[1],
-                        data: visibleIndices.map(index => fullData.transactionPercentages[index])
+                        data: visibleIndices.map(index => fullData.transactionPercentages[index]),
+                        backgroundColor: transactionBackgroundColor,
+                        borderColor: transactionBorderColor,
+                        pointBackgroundColor: transactionBorderColor,
+                        pointHoverBorderColor: transactionBorderColor,
                     }
                 ]
             };
@@ -393,9 +383,44 @@ const HomeRadarChart = () => {
             <div className="radar-chart-container">
                 <h3 className="chart-title">Budget vs Spending Overview</h3>
                 <p className="chart-subtitle">Sample Data</p>
-                   <p className="chart-tooltip" style={{marginTop: '12px'}}>
-                       Your dashboard will look like this once you enter your information. Categories and details are fully customizable with Saiel.
-                   </p>
+                {/* Controls and info below title/subtitle and above chart */}
+                <div className="chart-controls-top" style={{textAlign: 'center', marginBottom: '20px'}}>
+                    <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '32px', marginBottom: '8px'}}>
+                        <span
+                            style={{
+                                color: currentTheme === 'dark' ? '#FFFFFF' : '#1A202C',
+                                fontWeight: 500
+                            }}
+                        >&#9679; Budget Distribution (%)</span>
+                        <span
+                            style={{
+                                color: currentTheme === 'dark' ? '#2D3748' : '#1A202C',
+                                fontWeight: 500
+                            }}
+                        >&#9679; Transaction vs. Budget (%)</span>
+                    </div>
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '8px'}}>
+                        <label htmlFor="income-input" style={{marginBottom: '4px'}}>Set Income:</label>
+                        <input
+                            id="income-input"
+                            type="text"
+                            value={formatCurrency(income)}
+                            onChange={(e) => {
+                                const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                                setIncome(Number(numericValue) || 0);
+                            }}
+                            className="income-input"
+                            style={{textAlign: 'center', fontWeight: 500, fontSize: '1.1em', width: '120px'}}
+                        />
+                    </div>
+                    <button onClick={randomizeData} className="randomize-btn" style={{margin: '12px 0'}}>
+                        Randomize Data
+                    </button>
+                    <p className="chart-tooltip" style={{marginTop: '12px'}}>
+                        Your dashboard will look like this once you enter your information. Categories and details are fully customizable with Saiel.
+                    </p>
+                </div>
+                {/* Chart below controls/info */}
                 <div className="chart-wrapper-centered">
                     <div className="chart-content">
                         <Radar data={chartData} options={getChartOptions()} />
@@ -409,72 +434,7 @@ const HomeRadarChart = () => {
                         <span>Remaining: {formatCurrency(calculateTotalSpent())}</span>
                     </div>
                 </div>
-                
-                {/* Category Key */}
-                <div className="budget-card-key">
-                    <h4 className="key-heading">Category Key</h4>
-
-                    {/* Column Headers */}
-                    <div className="key-column-headers">
-                        <span className="header-view">View</span>
-                        <span className="header-no">No.</span>
-                        <span className="header-category">Category</span>
-                        <span className="header-budget">Budget</span>
-                        <span className="header-transaction">Transaction</span>
-                    </div>
-
-                    <div className="key-list-static">
-                        {categories.map((category, index) => (
-                            <div key={index} className="key-item-static">
-                                <span className="key-view-static">
-                                    <EyeIcon 
-                                        visible={!hiddenCategories.includes(category)}
-                                        onClick={() => toggleCategoryVisibility(category)}
-                                        size={18}
-                                    />
-                                </span>
-                                <span className="key-numeral-static">{toRomanNumeral(index + 1)}</span>
-                                <span className="key-category-static">{category}</span>
-                                <span className="key-budget-static">{fullData.budgetData[index].toFixed(1)}%</span>
-                                <span className="key-transaction-static">{fullData.transactionPercentages[index].toFixed(1)}%</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-            
-            {/* Controls outside the card */}
-            <div className="external-controls">
-                <div className="chart-legend">
-                    <div className="legend-item">
-                        <span className="legend-color" style={{backgroundColor: 'rgba(54, 162, 235, 0.7)'}}></span>
-                        <span>Budget Distribution (%)</span>
-                    </div>
-                    <div className="legend-item">
-                        <span className="legend-color" style={{backgroundColor: 'rgba(255, 99, 132, 0.7)'}}></span>
-                        <span>Transaction vs. Budget (%)</span>
-                    </div>
-                </div>
-                <div className="income-control">
-                    <div className="income-input-wrapper">
-                        <span className="income-label">Set Income:</span>
-                        <input
-                            id="income-input"
-                            type="text"
-                            value={formatCurrency(income)}
-                            onChange={(e) => {
-                                const numericValue = e.target.value.replace(/[^0-9]/g, '');
-                                setIncome(Number(numericValue) || 0);
-                            }}
-                            className="income-input"
-                        />
-                    </div>
-                </div>
-                <div className="chart-controls">
-                    <button onClick={randomizeData} className="randomize-btn">
-                        Randomize Data
-                    </button>
-                </div>
+                {/* Category Key and other content can go here if needed */}
             </div>
         </div>
     );
