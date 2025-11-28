@@ -229,20 +229,6 @@ function TransactionRadarChart({ data = [], categories = [] }) {
   return (
     <div className="transaction-radar-chart">
       <svg ref={svgRef}></svg>
-      {/* Category Key below chart */}
-      <div className="chart-key">
-        <h4 className="key-heading">Category Key</h4>
-        <div className="key-list-static">
-          {chartData.map((item, index) => (
-            <div key={item.category} className="key-item-static">
-              <span className="key-numeral-static">{toRomanNumeral(index + 1)}</span>
-              <span className="key-category-static">{item.category}</span>
-              <span className="key-amount-static">{item.amount ? `$${item.amount.toFixed(2)}` : "$0.00"}</span>
-              <span className="key-percentage-static">{item.percentage ? item.percentage.toFixed(1) : "0.0"}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
