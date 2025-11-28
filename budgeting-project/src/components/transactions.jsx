@@ -104,157 +104,20 @@ function Transactions() {
     return parsedTransactions.length === 0;
   });
 
-  // ...existing logic and handlers...
-  // For brevity, you can copy your previous logic here
-
-  return (
-    <div className="transactions-page">
-      <div className="transactions-content">
-        {/* Left side - Transaction Entry Form */}
-        <div className="transaction-entry-card">
-          <h2>New Entry</h2>
-          {/* View Toggle */}
-          <div className="view-toggle">
-            <button
-              className={viewMode === "list" ? "active" : ""}
-              onClick={() => setViewMode("list")}
-            >
-              List View
-            </button>
-            <button
-              className={viewMode === "chart" ? "active" : ""}
-              onClick={() => setViewMode("chart")}
-            >
-              Chart View
-            </button>
-          </div>
-          {/* Income Section */}
-          <div className="income-section">
-            <label htmlFor="monthly-income">Monthly Income:</label>
-            <div className="income-input-group">
-              <input
-                id="monthly-income"
-                type="text"
-                value={budgetData.monthlyIncome ? budgetData.monthlyIncome : ""}
-                onChange={() => {}}
-                placeholder="$0.00"
-              />
-              <button type="button" className="income-enter-btn">
-                Enter
-              </button>
-            </div>
-            <div className="remaining-info">
-              <span>Remaining: $0.00</span>
-            </div>
-            <div className="remaining-bar-container">
-              <div className="remaining-bar" style={{ width: `100%` }}></div>
-            </div>
-          </div>
-          <form className="transaction-form">
-            <div className="form-group">
-              <label htmlFor="date">Date</label>
-              <div className="date-input-wrapper">
-                <input
-                  type="date"
-                  id="date"
-                  value={newTransaction.date}
-                  onChange={() => {}}
-                  required
-                  className="date-input"
-                />
-                <div className="calendar-icon">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div className="form-group">
-              <label htmlFor="category">Category</label>
-              <select
-                id="category"
-                value={newTransaction.category}
-                onChange={() => {}}
-                required
-              >
-                <option value="">Select a category</option>
-                {getAllCategories().map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-              <div className="category-count-toggle">
-                <button
-                  type="button"
-                  className={categoryCount === 8 ? "active" : ""}
-                >
-                  Eight
-                </button>
-                <button
-                  type="button"
-                  className={categoryCount === 12 ? "active" : ""}
-                >
-                  Twelve
-                </button>
-                <button
-                  type="button"
-                  className={categoryCount === 16 ? "active" : ""}
-                >
-                  Sixteen
-                </button>
-              </div>
-              <label className="category-count-label">
-                Number of Categories
-              </label>
-            </div>
-            <div className="form-group">
-              <label htmlFor="amount">Amount</label>
-              <div className="amount-input-wrapper">
-                <span className="currency-symbol">$</span>
-                <input
-                  type="text"
-                  id="amount"
-                  placeholder="0.00"
-                  value={newTransaction.amount}
-                  onChange={() => {}}
-                  className="amount-input"
-                  required
-                />
-              </div>
-            </div>
-            <button type="submit" className="submit-btn">
-              Add Transaction
-            </button>
-          </form>
-        </div>
-        {/* Right side - Transaction List or Chart */}
-        <div className="transaction-display">
-          {/* Transaction List or Chart logic goes here */}
-        </div>
-      </div>
-    </div>
-  );
-  return txs.filter((tx) => {
-    if (!tx.date) return false;
-    const dateObj = new Date(tx.date);
-    const monthMatch = selectedMonth
-      ? dateObj.getMonth() + 1 === parseInt(selectedMonth)
-      : true;
-    const yearMatch = selectedYear
-      ? dateObj.getFullYear() === parseInt(selectedYear)
-      : true;
-    return monthMatch && yearMatch;
-  });
+  // Filter transactions helper
+  const filterTransactions = useCallback((txs) => {
+    return txs.filter((tx) => {
+      if (!tx.date) return false;
+      const dateObj = new Date(tx.date);
+      const monthMatch = selectedMonth
+        ? dateObj.getMonth() + 1 === parseInt(selectedMonth)
+        : true;
+      const yearMatch = selectedYear
+        ? dateObj.getFullYear() === parseInt(selectedYear)
+        : true;
+      return monthMatch && yearMatch;
+    });
+  }, [selectedMonth, selectedYear]);
 
   // Listen for storage changes from other pages (like budgets page)
   useEffect(() => {
@@ -679,6 +542,15 @@ function Transactions() {
     });
   };
 
+  // Toggle category visibility in chart
+  const toggleCategoryVisibility = (category) => {
+    setHiddenCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category]
+    );
+  };
+
   return (
     <div className="transactions-page">
       <div className="transactions-content">
@@ -984,16 +856,17 @@ function Transactions() {
                 </div>
               ) : (
                 <ErrorBoundary>
-                  <TransactionRadarChart
-                    data={transactionsByCategory.filter(
-                      (item) => !hiddenCategories.includes(item.category)
-                    )}
-                    categories={transactionsByCategory.map(
-                      (item) => item.category
-                    )}
-                  />
-                  {/* Category Key below chart */}
-                  <div className="chart-key">
+                  <div className="chart-with-key">
+                    <TransactionRadarChart
+                      data={transactionsByCategory.filter(
+                        (item) => !hiddenCategories.includes(item.category)
+                      )}
+                      categories={transactionsByCategory.map(
+                        (item) => item.category
+                      )}
+                    />
+                    {/* Category Key below chart */}
+                    <div className="chart-key">
                     <h4 className="key-heading">Category Key</h4>
                     <div className="key-list-static">
                       {transactionsByCategory.map((item, index) => (
@@ -1074,6 +947,7 @@ function Transactions() {
                         </div>
                       ))}
                     </div>
+                  </div>
                   </div>
                 </ErrorBoundary>
               )}
