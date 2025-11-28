@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
 import budgetDataTemplate from '../data/budgetData.json';
 import { EyeIcon } from './EyeIcon';
@@ -35,16 +36,16 @@ function Budget() {
     }, [budgetData]);
 
     // Predefined category sets (matching transactions page)
-    const categoryOptions = {
+    const categoryOptions = useMemo(() => ({
         8: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Savings', 'Debt', 'Lifestyle'],
         12: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Insurance', 'Health', 'Savings', 'Investing', 'Debt', 'Personal', 'Leisure'],
         16: ['Housing', 'Utilities', 'Groceries', 'Dining', 'Transport', 'Insurance', 'Health', 'Savings', 'Investing', 'Debt', 'Personal', 'Leisure', 'Education', 'Giving', 'Pets', 'Miscellaneous']
-    };
+    }), []);
 
     // Get all categories (based on selected category count only)
-    const getAllCategories = () => {
+    const getAllCategories = useCallback(() => {
         return categoryOptions[categoryCount] || categoryOptions[16];
-    };
+    }, [categoryOptions, categoryCount]);
 
     // Toggle category visibility
     const toggleCategoryVisibility = (category) => {
@@ -78,14 +79,14 @@ function Budget() {
     };
 
     // Format currency with commas
-    const formatCurrency = (amount) => {
+    const formatCurrency = useCallback((amount) => {
         if (!amount && amount !== 0) return '$0.00';
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
             minimumFractionDigits: 2
         }).format(amount);
-    };
+    }, []);
 
     // Format input value with commas and decimals
     const formatInputValue = (value) => {
@@ -127,21 +128,17 @@ function Budget() {
     // Prepare chart data for D3 radar chart (excluding hidden categories)
     const prepareRadarData = () => {
         const budgetEntries = Object.entries(budgetData.budgets);
-        
-        const radarData = [];
-        budgetEntries.forEach(([category, amount]) => {
+        const allCategories = Object.keys(budgetData.budgets);
+        // Always show all categories, even if value is empty
+        return allCategories.map(category => {
+            const amount = budgetData.budgets[category];
             const numericAmount = parseFloat(amount) || 0;
-            // Exclude only hidden categories from the chart
-            if (numericAmount > 0 && !hiddenCategories.includes(category)) {
-                radarData.push({
-                    category: category,
-                    percentage: numericAmount,
-                    amount: numericAmount
-                });
-            }
+            return {
+                category: category,
+                percentage: numericAmount,
+                amount: numericAmount
+            };
         });
-
-        return radarData;
     };
 
     // Prepare full list for key (including Housing as first item and all other categories)
@@ -184,44 +181,55 @@ function Budget() {
         if (viewMode === 'chart' || (viewMode === 'guide' && document.querySelector('.guide-chart-section svg'))) {
             const targetSvg = viewMode === 'chart' ? svgRef.current : document.querySelector('.guide-chart-section svg');
             if (!targetSvg) return;
-            
-            const data = prepareRadarData();
-            if (!data || data.length === 0) return;
+
+            // Get all selected categories, excluding hidden ones
+            const allCategories = getAllCategories().filter(cat => !hiddenCategories.includes(cat));
+            // Prepare data for radar chart, but if no data, fill with zeroes
+            const data = allCategories.map((category) => {
+                const amount = budgetData.budgets[category];
+                const numericAmount = parseFloat(amount) || 0;
+                return {
+                    category: category,
+                    percentage: numericAmount,
+                    amount: numericAmount
+                };
+            });
 
             const svg = d3.select(targetSvg);
             svg.selectAll("*").remove();
 
-        const margin = { top: 50, right: 50, bottom: 50, left: 50 };
-        const width = 400 - margin.left - margin.right;
-        const height = 400 - margin.top - margin.bottom;
-        const radius = Math.min(width, height) / 2;
+            const margin = { top: 50, right: 50, bottom: 50, left: 50 };
+            const width = 400 - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+            const radius = Math.min(width, height) / 2;
 
-        const container = svg
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
-            .append("g")
-            .attr("transform", `translate(${width / 2 + margin.left}, ${height / 2 + margin.top})`);
+            const container = svg
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${width / 2 + margin.left}, ${height / 2 + margin.top})`);
 
-        // Prepare data - calculate each category as percentage of total
-        const totalAmount = data.reduce((sum, d) => sum + d.amount, 0);
-        const normalizedData = data.map(d => ({
-            ...d,
-            normalizedValue: totalAmount > 0 ? (d.amount / totalAmount) * 100 : 0
-        }));
+            // Prepare data - calculate each category as percentage of total
+            const totalAmount = data.reduce((sum, d) => sum + d.amount, 0);
+            const normalizedData = data.map(d => ({
+                ...d,
+                normalizedValue: totalAmount > 0 ? (d.amount / totalAmount) * 100 : 0
+            }));
 
-        // Find the maximum percentage and round up to nearest 10
-        const maxPercentage = Math.max(...normalizedData.map(d => d.normalizedValue));
-        const maxScale = Math.ceil(maxPercentage / 10) * 10;
+            // Find the maximum percentage and round up to nearest 10
+            const maxPercentage = Math.max(...normalizedData.map(d => d.normalizedValue));
+            const maxScale = Math.ceil(maxPercentage / 10) * 10 || 10;
 
-        const angleSlice = (Math.PI * 2) / normalizedData.length;
+            // Always use the number of selected categories for axes
+            const angleSlice = (Math.PI * 2) / (allCategories.length || 1);
 
-        // Create radial scale - use dynamic max instead of 100
-        const rScale = d3.scaleLinear()
-            .range([0, radius])
-            .domain([0, maxScale]);
+            // Create radial scale - use dynamic max instead of 100
+            const rScale = d3.scaleLinear()
+                .range([0, radius])
+                .domain([0, maxScale]);
 
-        // Create the background circles
-        const levels = 5;
+            // Create the background circles
+            const levels = 5;
         for (let level = 1; level <= levels; level++) {
             const levelRadius = (radius / levels) * level;
             
@@ -303,11 +311,11 @@ function Budget() {
             })
             .text((d, i) => toRomanNumeral(i + 1))
             .append("title")
-            .text(d => d.category);
+            .text((d, i) => allCategories[i]);
 
 
         }
-    }, [budgetData, viewMode, formatCurrency, hiddenCategories]);
+    }, [budgetData, viewMode, formatCurrency, hiddenCategories, getAllCategories]);
 
     // Get housing budget amount to display separately
     const getHousingBudget = () => {
@@ -635,38 +643,39 @@ Finally, consider how the budget feels. A good plan supports your life instead o
                         </div>
 
                         {/* Category Key - Always visible */}
-                        {prepareKeyData().length > 0 && (
-                            <div className="budget-card-key">
-                                <h4 className="key-heading">Category Key</h4>
+                        <div className="budget-card-key">
+                            <h4 className="key-heading">Category Key</h4>
 
-                                {/* Column Headers */}
-                                <div className="key-column-headers">
-                                    <span className="header-view">View</span>
-                                    <span className="header-no">No.</span>
-                                    <span className="header-category">Category</span>
-                                    <span className="header-value">Value</span>
-                                    <span className="header-percentage">Percentage</span>
-                                </div>
+                            {/* Column Headers */}
+                            <div className="key-column-headers">
+                                <span className="header-view">View</span>
+                                <span className="header-no">No.</span>
+                                <span className="header-category">Category</span>
+                                <span className="header-value">Value</span>
+                                <span className="header-percentage">Percentage</span>
+                            </div>
 
-                                <div className="key-list-static">
-                                    {prepareKeyData().map((item, index) => (
-                                        <div key={index} className="key-item-static">
+                            <div className="key-list-static">
+                                {getAllCategories().map((category, index) => {
+                                    const amount = parseFloat(budgetData.budgets[category]) || 0;
+                                    return (
+                                        <div key={category} className="key-item-static">
                                             <span className="key-view-static">
                                                 <EyeIcon 
-                                                    visible={!hiddenCategories.includes(item.category)}
-                                                    onClick={() => toggleCategoryVisibility(item.category)}
+                                                    visible={!hiddenCategories.includes(category)}
+                                                    onClick={() => toggleCategoryVisibility(category)}
                                                     size={18}
                                                 />
                                             </span>
                                             <span className="key-numeral-static">{toRomanNumeral(index + 1)}</span>
-                                            <span className="key-category-static">{item.category}</span>
-                                            <span className="key-amount-static">{formatCurrency(item.amount)}</span>
-                                            <span className="key-percentage-static">{getCategoryPercentage(item.amount).toFixed(1)}%</span>
+                                            <span className="key-category-static">{category}</span>
+                                            <span className="key-amount-static">{formatCurrency(amount)}</span>
+                                            <span className="key-percentage-static">{amount > 0 ? getCategoryPercentage(amount).toFixed(1) : '0.0'}%</span>
                                         </div>
-                                    ))}
-                                </div>
+                                    );
+                                })}
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     {/* User Guide with Carousel */}
