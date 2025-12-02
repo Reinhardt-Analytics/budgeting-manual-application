@@ -18,7 +18,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #FFFFFF;
+  background-color: var(--bg-color);
   z-index: -10;
 }
 
@@ -43,15 +43,16 @@
 
 /* Transaction Entry Card */
 .transaction-entry-card {
-  width: 20rem;
+  width: 28rem;
+  max-width: 450px;
   height: auto;
   min-height: 500px;
   display: flex;
   flex-direction: column;
-  background: #F8F9FA;
+  background: var(--card-background);
   border-radius: 12px;
   padding: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--card-shadow);
   flex-shrink: 0;
   position: relative;
   z-index: 10;
@@ -87,7 +88,7 @@
   border-radius: 4px;
   font-size: 14px;
   transition: border-color 0.3s ease;
-  background-color: #FFFFFF;
+  background-color: var(--input-background);
   color: var(--text-color);
 }
 
@@ -178,7 +179,7 @@
   padding: 10px;
   border: 2px solid var(--border-color);
   border-radius: 4px;
-  background: #FFFFFF;
+  background: var(--input-background);
   color: var(--text-color);
   font-size: 14px;
   font-family: inherit;
@@ -311,7 +312,7 @@
   padding: 8px;
   border: 2px solid var(--border-color);
   border-radius: 4px;
-  background: #FFFFFF;
+  background: var(--input-background);
   color: var(--text-color);
   font-size: 14px;
   font-family: inherit;
@@ -635,16 +636,43 @@
   background: transparent;
   border-radius: 4px;
   transition: all 0.2s ease;
+  gap: 8px;
 }
 
 .transaction-entry:hover {
   background: rgba(0, 0, 0, 0.05);
 }
 
+.delete-transaction-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.delete-transaction-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.delete-transaction-btn:active {
+  transform: scale(0.95);
+}
+
 .transaction-entry .transaction-category {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-color);
   font-weight: 500;
+  text-align: left;
+  flex: 1;
 }
 
 .transaction-entry .transaction-amount {
@@ -672,7 +700,7 @@
 
 .transaction-amount {
   font-weight: 700;
-  color: #394353;
+  color: var(--text-color);
   font-size: 16px;
 }
 
@@ -765,6 +793,10 @@
     padding-right: 0;
     max-width: 100%;
   }
+  
+  .chart-key {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 768px) {
@@ -806,6 +838,177 @@
     gap: 0.5rem;
     align-items: stretch;
   }
+  
+  .key-column-headers {
+    grid-template-columns: 40px 40px 1fr 70px 50px;
+    gap: 8px;
+    padding: 6px 8px;
+    font-size: 0.7rem;
+  }
+  
+  .key-item-static {
+    grid-template-columns: 40px 40px 1fr 70px 50px;
+    gap: 8px;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+  
+  .key-amount-static {
+    min-width: 70px;
+  }
+  
+  .key-percentage-static {
+    min-width: 50px;
+  }
+  
+  .chart-key {
+    padding: 16px;
+  }
+  
+  .key-heading {
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .transactions-page {
+    padding: 8px;
+  }
+  
+  .transaction-entry-card,
+  .transaction-display {
+    padding: 15px;
+  }
+  
+  .transaction-entry-card h2,
+  .transaction-display h2 {
+    font-size: 1.2rem;
+  }
+  
+  .form-group label {
+    font-size: 0.9rem;
+  }
+  
+  .form-group input,
+  .form-group select {
+    font-size: 0.9rem;
+    padding: 0.5rem;
+  }
+  
+  .add-transaction-btn {
+    font-size: 0.9rem;
+    padding: 0.6rem 1.2rem;
+  }
+  
+  .key-column-headers {
+    grid-template-columns: 35px 35px 1fr 60px 45px;
+    gap: 6px;
+    padding: 5px 6px;
+    font-size: 0.65rem;
+  }
+  
+  .key-item-static {
+    grid-template-columns: 35px 35px 1fr 60px 45px;
+    gap: 6px;
+    padding: 5px 6px;
+    font-size: 0.75rem;
+  }
+  
+  .key-amount-static {
+    min-width: 60px;
+    font-size: 0.75rem;
+  }
+  
+  .key-percentage-static {
+    min-width: 45px;
+    font-size: 0.75rem;
+  }
+  
+  .chart-key {
+    padding: 12px;
+  }
+  
+  .key-heading {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .transactions-page h1 {
+    font-size: 1.5rem;
+  }
+  
+  .transaction-entry-card,
+  .transaction-display {
+    padding: 12px;
+  }
+  
+  .transaction-entry-card h2,
+  .transaction-display h2 {
+    font-size: 1.1rem;
+  }
+  
+  .form-group label {
+    font-size: 0.85rem;
+  }
+  
+  .form-group input,
+  .form-group select {
+    font-size: 0.85rem;
+    padding: 0.45rem;
+  }
+  
+  .add-transaction-btn {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .transaction-item {
+    font-size: 0.85rem;
+  }
+  
+  .key-column-headers {
+    grid-template-columns: 30px 30px 1fr 55px 40px;
+    gap: 4px;
+    padding: 4px;
+    font-size: 0.6rem;
+  }
+  
+  .key-item-static {
+    grid-template-columns: 30px 30px 1fr 55px 40px;
+    gap: 4px;
+    padding: 4px;
+    font-size: 0.7rem;
+  }
+  
+  .key-numeral-static {
+    font-size: 0.7rem;
+  }
+  
+  .key-amount-static {
+    min-width: 55px;
+    font-size: 0.7rem;
+  }
+  
+  .key-percentage-static {
+    min-width: 40px;
+    font-size: 0.7rem;
+  }
+  
+  .eye-icon-container {
+    width: 25px;
+    height: 25px;
+  }
+  
+  .chart-key {
+    padding: 10px;
+  }
+  
+  .key-heading {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
 }
 
 
@@ -823,17 +1026,26 @@
 
 /* Dark theme support for date groups */
 [data-theme="dark"] .date-header {
-  color: #e2e8f0;
-  border-bottom-color: #4a5568;
+  color: #e5e5e5;
+  border-bottom-color: #4a4a4a;
 }
 
 [data-theme="dark"] .transaction-entry:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 [data-theme="dark"] .transaction-entry .transaction-category,
 [data-theme="dark"] .transaction-entry .transaction-amount {
-  color: #e2e8f0;
+  color: #e5e5e5;
+}
+
+[data-theme="dark"] .delete-transaction-btn {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .delete-transaction-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
 }
 
 /* Category Count Toggle */
@@ -874,4 +1086,125 @@
   color: var(--text-color);
   font-size: 12px;
   text-transform: none;
+}
+
+/* Chart Key Styles */
+.chart-with-key {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.chart-key {
+  width: 100%;
+  max-width: 600px;
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--card-border);
+}
+
+.key-heading {
+  text-align: center;
+  margin: 0 0 18px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.key-column-headers {
+  display: grid;
+  grid-template-columns: 50px 50px 1fr auto auto;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color);
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 10px;
+}
+
+.header-view {
+  text-align: center;
+  min-width: 50px;
+}
+
+.header-no {
+  text-align: left;
+}
+
+.header-category {
+  text-align: left;
+}
+
+.header-value {
+  text-align: right;
+  padding-right: 10px;
+}
+
+.header-percentage {
+  text-align: right;
+  min-width: 60px;
+}
+
+.key-list-static {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.key-item-static {
+  display: grid;
+  grid-template-columns: 50px 50px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-color);
+  padding: 8px 12px;
+  background-color: var(--table-row-bg);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.key-item-static:hover {
+  background-color: var(--table-row-hover);
+}
+
+.key-view-static {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+}
+
+.key-numeral-static {
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-align: left;
+  font-size: 14px;
+}
+
+.key-category-static {
+  font-weight: 700;
+  text-align: left;
+  color: var(--text-color);
+}
+
+.key-amount-static {
+  font-weight: 600;
+  color: var(--text-color);
+  text-align: right;
+  padding-right: 10px;
+  min-width: 90px;
+}
+
+.key-percentage-static {
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: right;
+  min-width: 60px;
 }

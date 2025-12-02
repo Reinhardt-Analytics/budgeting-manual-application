@@ -79,10 +79,18 @@ function Transactions() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [hiddenCategories, setHiddenCategories] = useState([]);
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState(() => {
+    try {
+      const savedTransactions = sessionStorage.getItem("transactions");
+      return savedTransactions ? JSON.parse(savedTransactions) : [];
+    } catch (error) {
+      console.error("Error loading transactions from sessionStorage:", error);
+      return [];
+    }
+  });
   const [budgetData, setBudgetData] = useState(() => {
     try {
-      const savedData = localStorage.getItem("budgetData");
+      const savedData = sessionStorage.getItem("budgetData");
       return savedData ? JSON.parse(savedData) : { ...budgetDataTemplate };
     } catch (error) {
       return { ...budgetDataTemplate };
@@ -93,11 +101,10 @@ function Transactions() {
     category: "",
     amount: "",
   });
-  const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [viewMode, setViewMode] = useState("list"); // 'list' or 'chart'
   const [categoryCount, setCategoryCount] = useState(12); // 8, 12, or 16 categories
   const [showDummyData, setShowDummyData] = useState(() => {
-    const hasRealTransactions = localStorage.getItem("transactions");
+    const hasRealTransactions = sessionStorage.getItem("transactions");
     const parsedTransactions = hasRealTransactions
       ? JSON.parse(hasRealTransactions)
       : [];
@@ -105,19 +112,22 @@ function Transactions() {
   });
 
   // Filter transactions helper
-  const filterTransactions = useCallback((txs) => {
-    return txs.filter((tx) => {
-      if (!tx.date) return false;
-      const dateObj = new Date(tx.date);
-      const monthMatch = selectedMonth
-        ? dateObj.getMonth() + 1 === parseInt(selectedMonth)
-        : true;
-      const yearMatch = selectedYear
-        ? dateObj.getFullYear() === parseInt(selectedYear)
-        : true;
-      return monthMatch && yearMatch;
-    });
-  }, [selectedMonth, selectedYear]);
+  const filterTransactions = useCallback(
+    (txs) => {
+      return txs.filter((tx) => {
+        if (!tx.date) return false;
+        const dateObj = new Date(tx.date);
+        const monthMatch = selectedMonth
+          ? dateObj.getMonth() + 1 === parseInt(selectedMonth)
+          : true;
+        const yearMatch = selectedYear
+          ? dateObj.getFullYear() === parseInt(selectedYear)
+          : true;
+        return monthMatch && yearMatch;
+      });
+    },
+    [selectedMonth, selectedYear]
+  );
 
   // Listen for storage changes from other pages (like budgets page)
   useEffect(() => {
@@ -136,18 +146,16 @@ function Transactions() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Save budget data to localStorage whenever it changes
+  // Save budget data to sessionStorage whenever it changes
   useEffect(() => {
     if (Object.keys(budgetData).length > 0) {
-      localStorage.setItem("budgetData", JSON.stringify(budgetData));
+      sessionStorage.setItem("budgetData", JSON.stringify(budgetData));
     }
   }, [budgetData]);
 
-  // Save transactions to localStorage whenever transactions change
+  // Save transactions to sessionStorage whenever transactions change
   useEffect(() => {
-    if (transactions.length > 0) {
-      localStorage.setItem("transactions", JSON.stringify(transactions));
-    }
+    sessionStorage.setItem("transactions", JSON.stringify(transactions));
   }, [transactions]);
 
   // Predefined category sets
@@ -391,6 +399,11 @@ function Transactions() {
     if (showDummyData) {
       setShowDummyData(false);
     }
+  };
+
+  // Delete a transaction
+  const deleteTransaction = (transactionId) => {
+    setTransactions((prev) => prev.filter((t) => t.id !== transactionId));
   };
 
   // Generate dummy transactions for demonstration
@@ -790,16 +803,6 @@ function Transactions() {
                     information.
                   </p>
                 )}
-                {(showDummyData
-                  ? generateDummyTransactions().length
-                  : transactions.length) > 15 && (
-                  <button
-                    className="view-all-btn"
-                    onClick={() => setShowAllTransactions(!showAllTransactions)}
-                  >
-                    {showAllTransactions ? "Show Less" : "View All"}
-                  </button>
-                )}
               </div>
 
               {displayedTransactions.length === 0 ? (
@@ -833,6 +836,29 @@ function Transactions() {
                               key={transaction.id}
                               className="transaction-entry"
                             >
+                              <button
+                                className="delete-transaction-btn"
+                                onClick={() =>
+                                  deleteTransaction(transaction.id)
+                                }
+                                aria-label="Delete transaction"
+                              >
+                                <svg
+                                  width="18"
+                                  height="18"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6m4-6v6"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
                               <div className="transaction-category">
                                 {transaction.category}
                               </div>
@@ -867,87 +893,97 @@ function Transactions() {
                     />
                     {/* Category Key below chart */}
                     <div className="chart-key">
-                    <h4 className="key-heading">Category Key</h4>
-                    <div className="key-list-static">
-                      {transactionsByCategory.map((item, index) => (
-                        <div key={item.category} className="key-item-static">
-                          <span className="key-view-static">
-                            <svg
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                              style={{
-                                cursor: "pointer",
-                                opacity: hiddenCategories.includes(
-                                  item.category
-                                )
-                                  ? 0.4
-                                  : 1,
-                              }}
-                              onClick={() =>
-                                toggleCategoryVisibility(item.category)
-                              }
-                            >
-                              {hiddenCategories.includes(item.category) ? (
-                                <g>
-                                  <path
-                                    d="M2 12C4.5 7 8.5 4 12 4c3.5 0 7.5 3 10 8-2.5 5-6.5 8-10 8-3.5 0-7.5-3-10-8z"
-                                    stroke="#394353"
-                                    strokeWidth="2"
-                                    fill="none"
-                                  />
-                                  <line
-                                    x1="3"
-                                    y1="21"
-                                    x2="21"
-                                    y2="3"
-                                    stroke="#394353"
-                                    strokeWidth="2"
-                                  />
-                                </g>
-                              ) : (
-                                <g>
-                                  <path
-                                    d="M2 12C4.5 7 8.5 4 12 4c3.5 0 7.5 3 10 8-2.5 5-6.5 8-10 8-3.5 0-7.5-3-10-8z"
-                                    stroke="#394353"
-                                    strokeWidth="2"
-                                    fill="none"
-                                  />
-                                  <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="3"
-                                    stroke="#394353"
-                                    strokeWidth="2"
-                                    fill="none"
-                                  />
-                                </g>
-                              )}
-                            </svg>
-                          </span>
-                          <span className="key-numeral-static">
-                            {toRomanNumeral(index + 1)}
-                          </span>
-                          <span className="key-category-static">
-                            {item.category}
-                          </span>
-                          <span className="key-amount-static">
-                            {item.amount
-                              ? `$${item.amount.toFixed(2)}`
-                              : "$0.00"}
-                          </span>
-                          <span className="key-percentage-static">
-                            {item.percentage
-                              ? item.percentage.toFixed(1)
-                              : "0.0"}
-                            %
-                          </span>
-                        </div>
-                      ))}
+                      <h4 className="key-heading">Category Key</h4>
+
+                      {/* Column Headers */}
+                      <div className="key-column-headers">
+                        <span className="header-view">View</span>
+                        <span className="header-no">No.</span>
+                        <span className="header-category">Category</span>
+                        <span className="header-value">Value</span>
+                        <span className="header-percentage">Percentage</span>
+                      </div>
+
+                      <div className="key-list-static">
+                        {transactionsByCategory.map((item, index) => (
+                          <div key={item.category} className="key-item-static">
+                            <span className="key-view-static">
+                              <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                style={{
+                                  cursor: "pointer",
+                                  opacity: hiddenCategories.includes(
+                                    item.category
+                                  )
+                                    ? 0.4
+                                    : 1,
+                                }}
+                                onClick={() =>
+                                  toggleCategoryVisibility(item.category)
+                                }
+                              >
+                                {hiddenCategories.includes(item.category) ? (
+                                  <g>
+                                    <path
+                                      d="M2 12C4.5 7 8.5 4 12 4c3.5 0 7.5 3 10 8-2.5 5-6.5 8-10 8-3.5 0-7.5-3-10-8z"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      fill="none"
+                                    />
+                                    <line
+                                      x1="3"
+                                      y1="21"
+                                      x2="21"
+                                      y2="3"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                    />
+                                  </g>
+                                ) : (
+                                  <g>
+                                    <path
+                                      d="M2 12C4.5 7 8.5 4 12 4c3.5 0 7.5 3 10 8-2.5 5-6.5 8-10 8-3.5 0-7.5-3-10-8z"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      fill="none"
+                                    />
+                                    <circle
+                                      cx="12"
+                                      cy="12"
+                                      r="3"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      fill="none"
+                                    />
+                                  </g>
+                                )}
+                              </svg>
+                            </span>
+                            <span className="key-numeral-static">
+                              {toRomanNumeral(index + 1)}
+                            </span>
+                            <span className="key-category-static">
+                              {item.category}
+                            </span>
+                            <span className="key-amount-static">
+                              {item.amount
+                                ? `$${item.amount.toFixed(2)}`
+                                : "$0.00"}
+                            </span>
+                            <span className="key-percentage-static">
+                              {item.percentage
+                                ? item.percentage.toFixed(1)
+                                : "0.0"}
+                              %
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
                   </div>
                 </ErrorBoundary>
               )}

@@ -1,21 +1,21 @@
-import { useEffect, useRef } from 'react'
-import * as d3 from 'd3'
-import './transaction-radar-chart.css'
+import { useEffect, useRef } from "react";
+import * as d3 from "d3";
+import "./transaction-radar-chart.css";
 
 function toRomanNumeral(num) {
   const romanNumerals = [
-    { value: 10, numeral: 'X' },
-    { value: 9, numeral: 'IX' },
-    { value: 8, numeral: 'VIII' },
-    { value: 7, numeral: 'VII' },
-    { value: 6, numeral: 'VI' },
-    { value: 5, numeral: 'V' },
-    { value: 4, numeral: 'IV' },
-    { value: 3, numeral: 'III' },
-    { value: 2, numeral: 'II' },
-    { value: 1, numeral: 'I' }
+    { value: 10, numeral: "X" },
+    { value: 9, numeral: "IX" },
+    { value: 8, numeral: "VIII" },
+    { value: 7, numeral: "VII" },
+    { value: 6, numeral: "VI" },
+    { value: 5, numeral: "V" },
+    { value: 4, numeral: "IV" },
+    { value: 3, numeral: "III" },
+    { value: 2, numeral: "II" },
+    { value: 1, numeral: "I" },
   ];
-  let result = '';
+  let result = "";
   for (let i = 0; i < romanNumerals.length; i++) {
     while (num >= romanNumerals[i].value) {
       result += romanNumerals[i].numeral;
@@ -29,16 +29,37 @@ function TransactionRadarChart({ data = [], categories = [] }) {
   const svgRef = useRef();
 
   // Defensive: validate data
-  const isValidData = Array.isArray(data) && data.length > 0 && data.every(
-    d => d && typeof d.category === 'string' && typeof d.amount === 'number' && typeof d.percentage === 'number'
-  );
+  const isValidData =
+    Array.isArray(data) &&
+    data.length > 0 &&
+    data.every(
+      (d) =>
+        d &&
+        typeof d.category === "string" &&
+        typeof d.amount === "number" &&
+        typeof d.percentage === "number"
+    );
 
   useEffect(() => {
     if (!isValidData) return;
+
+    // Get CSS custom properties for theme-aware colors
+    const getComputedColor = (property) => {
+      return getComputedStyle(document.documentElement)
+        .getPropertyValue(property)
+        .trim();
+    };
+    const chartAccent = getComputedColor("--chart-accent") || "#5a657a";
+
     // Always show axes for all categories
-    const allCategories = categories && categories.length ? categories : (data ? data.map(d => d.category) : []);
-    const chartData = allCategories.map(category => {
-      const found = data.find(d => d.category === category);
+    const allCategories =
+      categories && categories.length
+        ? categories
+        : data
+        ? data.map((d) => d.category)
+        : [];
+    const chartData = allCategories.map((category) => {
+      const found = data.find((d) => d.category === category);
       return found ? found : { category, percentage: 0, amount: 0 };
     });
     if (!chartData || chartData.length === 0) return;
@@ -55,27 +76,39 @@ function TransactionRadarChart({ data = [], categories = [] }) {
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom)
       .append("g")
-      .attr("transform", `translate(${width / 2 + margin.left}, ${height / 2 + margin.top})`);
+      .attr(
+        "transform",
+        `translate(${width / 2 + margin.left}, ${height / 2 + margin.top})`
+      );
 
     // Prepare data - normalize to 0-100 scale
-    const maxPercentage = d3.max(chartData, d => d.percentage) || 100;
-    const normalizedData = chartData.map(d => ({
+    const maxPercentage = d3.max(chartData, (d) => d.percentage) || 100;
+    const normalizedData = chartData.map((d) => ({
       ...d,
-      normalizedValue: (d.percentage / maxPercentage) * 100
+      normalizedValue: (d.percentage / maxPercentage) * 100,
     }));
 
     const angleSlice = (Math.PI * 2) / normalizedData.length;
 
     // Create radial scale
-    const rScale = d3.scaleLinear()
-      .range([0, radius])
-      .domain([0, 100]);
+    const rScale = d3.scaleLinear().range([0, radius]).domain([0, 100]);
+
+    // Helper function to calculate label positions
+    const calculateLabelPosition = (index) => {
+      const labelRadius = radius + 20;
+      const angle = angleSlice * index - Math.PI / 2;
+      return {
+        x: labelRadius * Math.cos(angle),
+        y: labelRadius * Math.sin(angle),
+      };
+    };
 
     // Create the background circles
     const levels = 5;
     for (let level = 1; level <= levels; level++) {
       const levelRadius = (radius / levels) * level;
-      container.append("circle")
+      container
+        .append("circle")
         .attr("cx", 0)
         .attr("cy", 0)
         .attr("r", levelRadius)
@@ -85,7 +118,8 @@ function TransactionRadarChart({ data = [], categories = [] }) {
         .style("stroke-width", "1px");
       // Add level labels
       if (level < levels) {
-        container.append("text")
+        container
+          .append("text")
           .attr("x", 4)
           .attr("y", -levelRadius)
           .attr("dy", "0.4em")
@@ -97,7 +131,8 @@ function TransactionRadarChart({ data = [], categories = [] }) {
 
     // Create the radial lines
     normalizedData.forEach((d, i) => {
-      container.append("line")
+      container
+        .append("line")
         .attr("x1", 0)
         .attr("y1", 0)
         .attr("x2", radius * Math.cos(angleSlice * i - Math.PI / 2))
@@ -108,36 +143,50 @@ function TransactionRadarChart({ data = [], categories = [] }) {
     });
 
     // Create the radar chart area
-    const radarLine = d3.lineRadial()
+    const radarLine = d3
+      .lineRadial()
       .angle((d, i) => angleSlice * i)
-      .radius(d => rScale(d.normalizedValue))
+      .radius((d) => rScale(d.normalizedValue))
       .curve(d3.curveLinearClosed);
 
     // Add the area fill
-    container.append("path")
+    container
+      .append("path")
       .datum(normalizedData)
       .attr("d", radarLine)
-      .style("fill", "#394353")
+      .style("fill", chartAccent)
       .style("fill-opacity", 0.2)
-      .style("stroke", "#394353")
+      .style("stroke", chartAccent)
       .style("stroke-width", "2px");
 
     // Add data points
-    container.selectAll(".radarCircle")
+    container
+      .selectAll(".radarCircle")
       .data(normalizedData)
-      .enter().append("circle")
+      .enter()
+      .append("circle")
       .attr("class", "radarCircle")
       .attr("r", 4)
-      .attr("cx", (d, i) => rScale(d.normalizedValue) * Math.cos(angleSlice * i - Math.PI / 2))
-      .attr("cy", (d, i) => rScale(d.normalizedValue) * Math.sin(angleSlice * i - Math.PI / 2))
-      .style("fill", "#394353")
+      .attr(
+        "cx",
+        (d, i) =>
+          rScale(d.normalizedValue) * Math.cos(angleSlice * i - Math.PI / 2)
+      )
+      .attr(
+        "cy",
+        (d, i) =>
+          rScale(d.normalizedValue) * Math.sin(angleSlice * i - Math.PI / 2)
+      )
+      .style("fill", chartAccent)
       .style("stroke", "white")
       .style("stroke-width", "2px");
 
     // Add category labels with Roman numerals
-    container.selectAll(".radarLabel")
+    container
+      .selectAll(".radarLabel")
       .data(normalizedData)
-      .enter().append("text")
+      .enter()
+      .append("text")
       .attr("class", "radarLabel")
       .attr("x", (d, i) => calculateLabelPosition(i).x)
       .attr("y", (d, i) => calculateLabelPosition(i).y)
@@ -146,7 +195,7 @@ function TransactionRadarChart({ data = [], categories = [] }) {
       .style("font-weight", "600")
       .style("fill", "var(--text-color)")
       .style("text-anchor", (d, i) => {
-        const angle = (angleSlice * i) * (180 / Math.PI);
+        const angle = angleSlice * i * (180 / Math.PI);
         return angle > 90 && angle < 270 ? "end" : "start";
       })
       .text((d, i) => toRomanNumeral(i + 1))
@@ -154,11 +203,13 @@ function TransactionRadarChart({ data = [], categories = [] }) {
       .text((d, i) => allCategories[i]);
 
     // Add percentage labels on hover
-    const tooltip = container.append("g")
+    const tooltip = container
+      .append("g")
       .attr("class", "tooltip")
       .style("opacity", 0);
 
-    tooltip.append("rect")
+    tooltip
+      .append("rect")
       .attr("width", 80)
       .attr("height", 30)
       .attr("x", -40)
@@ -168,41 +219,49 @@ function TransactionRadarChart({ data = [], categories = [] }) {
       .style("stroke-width", "1px")
       .style("rx", "4");
 
-    const tooltipText = tooltip.append("text")
+    const tooltipText = tooltip
+      .append("text")
       .attr("text-anchor", "middle")
       .attr("dy", "-0.5em")
       .style("font-size", "11px")
       .style("font-weight", "600")
       .style("fill", "var(--text-color)");
 
-    const tooltipAmount = tooltip.append("text")
+    const tooltipAmount = tooltip
+      .append("text")
       .attr("text-anchor", "middle")
       .attr("dy", "0.8em")
       .style("font-size", "10px")
       .style("fill", "var(--text-secondary)");
 
     // Add hover events to data points
-    container.selectAll(".radarCircle")
-      .on("mouseover", function(event, d) {
+    container
+      .selectAll(".radarCircle")
+      .on("mouseover", function (event, d) {
         d3.select(this)
           .transition()
           .duration(200)
           .attr("r", 6)
-          .style("fill", "#2d3441");
+          .style("fill", getComputedColor("--accent-hover") || "#6b7a92");
 
         tooltip
           .style("opacity", 1)
-          .attr("transform", `translate(${d3.select(this).attr("cx")}, ${d3.select(this).attr("cy")})`);
+          .attr(
+            "transform",
+            `translate(${d3.select(this).attr("cx")}, ${d3
+              .select(this)
+              .attr("cy")})`
+          );
 
         tooltipText.text(`${d.percentage.toFixed(1)}%`);
         tooltipAmount.text(`$${d.amount.toFixed(2)}`);
       })
-      .on("mouseout", function() {
+      .on("mouseout", function () {
         d3.select(this)
           .transition()
           .duration(200)
           .attr("r", 4)
-          .style("fill", "#394353");
+          .style("fill", chartAccent);
 
         tooltip.style("opacity", 0);
       });
@@ -220,9 +279,14 @@ function TransactionRadarChart({ data = [], categories = [] }) {
   }
 
   // ...existing code...
-  const allCategories = categories && categories.length ? categories : (data ? data.map(d => d.category) : []);
-  const chartData = allCategories.map(category => {
-    const found = data.find(d => d.category === category);
+  const allCategories =
+    categories && categories.length
+      ? categories
+      : data
+      ? data.map((d) => d.category)
+      : [];
+  const chartData = allCategories.map((category) => {
+    const found = data.find((d) => d.category === category);
     return found ? found : { category, percentage: 0, amount: 0 };
   });
 
@@ -233,4 +297,4 @@ function TransactionRadarChart({ data = [], categories = [] }) {
   );
 }
 
-export default TransactionRadarChart
+export default TransactionRadarChart;

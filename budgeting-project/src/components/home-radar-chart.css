@@ -6,30 +6,30 @@
 }
 
 .category-toggle-btn {
-    background: #f4f4f4;
-    color: #2B2D42;
-    border: 1px solid #e3eafc;
+    background: var(--button-bg);
+    color: var(--button-text);
+    border: 1px solid var(--button-border);
     border-radius: 8px;
     font-size: 1.08em;
     font-weight: 500;
     padding: 8px 28px;
     cursor: pointer;
     transition: background 0.2s, color 0.2s, border 0.2s;
-    box-shadow: 0 1px 2px rgba(60,80,120,0.04);
+    box-shadow: var(--card-shadow);
     outline: none;
 }
 
 .category-toggle-btn.active {
-    background: #394353;
-    color: #fff;
-    border: 2px solid #394353;
+    background: var(--accent-color);
+    color: #ffffff;
+    border: 2px solid var(--accent-color);
     font-weight: 700;
 }
 
 .category-toggle-btn:hover {
-    background: #e3eafc;
-    color: #2B2D42;
-    border: 1.5px solid #bfc8e6;
+    background: var(--button-hover);
+    color: var(--button-text);
+    border: 1.5px solid var(--accent-color);
 }
 .radar-chart-full-container {
     width: 100%;
@@ -46,22 +46,26 @@
     min-height: 800px;
     display: flex;
     flex-direction: column;
-    background: #f8f8f8;
+    background: var(--chart-background);
     border-radius: 16px;
     padding: 36px 32px 32px 32px;
-    box-shadow: 0 4px 24px rgba(60, 80, 120, 0.08);
+    box-shadow: var(--card-shadow);
     margin-bottom: 32px;
     margin-top: 40px;
-    border: 1px solid #e3eafc;
+    border: 1px solid var(--card-border);
 }
 
 .radar-chart-container .chart-title {
     margin: 0 0 15px 0;
     font-size: 22px;
     font-weight: 700;
-    color: #2B2D42;
+    color: var(--text-color);
     text-align: center;
     letter-spacing: 0.5px;
+}
+
+.chart-tooltip {
+    color: var(--text-secondary);
 }
 
 .chart-wrapper-centered {
@@ -88,7 +92,7 @@
 }
 
 .randomize-btn {
-    background: linear-gradient(135deg, #6b7280, #4b5563);
+    background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
     color: #ffffff;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -97,31 +101,19 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-
-
 .randomize-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--header-border);
-}
-
-[data-theme="dark"] .randomize-btn {
-    background: linear-gradient(135deg, #4b5563, #374151);
-    color: #f3f4f6;
-}
-
-[data-theme="light"] .randomize-btn {
-    background: linear-gradient(135deg, #6b7280, #4b5563);
-    color: #ffffff;
+    box-shadow: 0 6px 16px rgba(57, 66, 82, 0.3);
+    filter: brightness(1.1);
 }
 
 .randomize-btn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
 }
 
 
@@ -129,7 +121,7 @@
 .chart-subtitle {
     margin: -10px 0 0 0;
     font-size: 14px;
-    color: var(--secondary-text-color);
+    color: var(--text-secondary);
     text-align: center;
     font-style: normal;
 }
@@ -231,9 +223,9 @@
     display: flex;
     align-items: center;
     width: 200px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--input-border);
     border-radius: 6px;
-    background: var(--card-background);
+    background: var(--input-background);
     padding: 8px 12px;
 }
 
@@ -257,8 +249,8 @@
 }
 
 .income-input-wrapper:focus-within {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(54, 162, 235, 0.2);
+    border-color: var(--input-focus);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .financial-summary-inside {
@@ -270,7 +262,7 @@
 .total-spent-display, .remaining-display {
     font-size: 14px;
     font-weight: 500;
-    color: var(--secondary-text-color);
+    color: var(--text-secondary);
     margin: 2px 0;
 }
 
@@ -294,21 +286,7 @@
     margin: 0;
 }
 
-/* Theme support */
-[data-theme="dark"] {
-    --card-background: #374151;
-    --text-color: #f3f4f6;
-    --border-color: rgba(75, 85, 99, 0.8);
-    --secondary-text-color: #9ca3af;
-}
-
-[data-theme="light"] {
-    --card-background: #ffffff;
-    --text-color: #374151;
-    --border-color: rgba(0, 0, 0, 0.1);
-    --secondary-text-color: #6b7280;
-}
-
+/* Remove old theme overrides since we're using root variables */
 .chart-legend {
     display: flex;
     justify-content: center;
@@ -337,7 +315,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--card-background);
+    background: var(--chart-background);
     border: 2px dashed var(--border-color);
     border-radius: 12px;
     padding: 40px 20px;
@@ -345,7 +323,7 @@
 
 .placeholder-content {
     text-align: center;
-    color: var(--secondary-text-color);
+    color: var(--text-secondary);
 }
 
 .placeholder-content h3 {
@@ -419,7 +397,7 @@
     font-weight: 600;
     color: var(--text-color);
     text-transform: uppercase;
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 2px solid var(--table-border);
     margin-bottom: 10px;
 }
 
@@ -461,13 +439,18 @@
     font-size: 13px;
     color: var(--text-color);
     padding: 8px 12px;
-    background-color: var(--section-background, rgba(0, 0, 0, 0.02));
+    background-color: var(--table-row-bg);
     border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.key-item-static:hover {
+    background-color: var(--table-row-hover);
 }
 
 .key-numeral-static {
     font-weight: 700;
-    color: #394353;
+    color: var(--text-secondary);
     text-align: left;
     font-size: 14px;
 }
@@ -475,6 +458,7 @@
 .key-category-static {
     font-weight: 700;
     text-align: left;
+    color: var(--text-color);
 }
 
 .key-budget-static {
@@ -487,7 +471,7 @@
 
 .key-transaction-static {
     font-weight: 600;
-    color: #394353;
+    color: var(--text-secondary);
     text-align: right;
     min-width: 90px;
 }
@@ -500,29 +484,12 @@
 }
 
 .eye-icon {
-    color: #394353;
+    color: var(--text-secondary);
     transition: color 0.2s ease, opacity 0.2s ease;
     cursor: pointer;
 }
 
 .eye-icon:hover {
-    color: #2d3441;
+    color: var(--text-color);
     opacity: 0.8;
-}
-
-[data-theme="dark"] .key-item-static {
-    background-color: rgba(75, 85, 99, 0.3);
-}
-
-[data-theme="dark"] .key-numeral-static,
-[data-theme="dark"] .key-transaction-static {
-    color: #9ca3af;
-}
-
-[data-theme="dark"] .eye-icon {
-    color: #9ca3af;
-}
-
-[data-theme="dark"] .eye-icon:hover {
-    color: #f3f4f6;
 }

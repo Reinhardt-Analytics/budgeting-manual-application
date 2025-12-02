@@ -1,14 +1,14 @@
 /* Dark theme support for date groups */
 [data-theme="dark"] .date-header {
-  color: #e2e8f0;
-  border-bottom-color: #4a5568;
+  color: #e5e5e5;
+  border-bottom-color: #4a4a4a;
 }
 
 [data-theme="dark"] .transaction-entry:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 [data-theme="dark"] .transaction-entry .transaction-category,
 [data-theme="dark"] .transaction-entry .transaction-amount {
-  color: #e2e8f0;
+  color: #e5e5e5;
 }
