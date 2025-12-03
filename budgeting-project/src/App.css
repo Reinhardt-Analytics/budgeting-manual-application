@@ -250,6 +250,13 @@ nav a button:hover {
   box-shadow: var(--card-shadow);
 }
 
+nav a button.active {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+  box-shadow: var(--card-shadow);
+  font-weight: 600;
+}
+
 .logo {
   height: 2em;
   padding: 1.5em;
